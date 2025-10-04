@@ -1,0 +1,51 @@
+# SyndrumNET Default Configuration
+
+random_seed: 42
+n_cores: 4
+
+data:
+  network_sources:
+    - huri
+    - corum
+    - phosphositeplus
+    - kegg_rpair
+    - signalink
+    - innatedb
+    - instruct
+  
+  creeds_diseases: 79  # Number of diseases in CREEDS
+  lincs_drugs: 1488     # Number of drugs in L1000
+
+propagation:
+  alpha: 0.5           # Restart probability (0-1)
+  tolerance: 1.0e-6    # Convergence threshold
+  max_iterations: 1000
+  normalize: 'column'  # 'column', 'row', or 'symmetric'
+
+scoring:
+  n_randomizations: 1000  # For z-score normalization
+  top_pct_genes: 0.05     # L1000 module definition (5%)
+  
+  # Component weights (for ablation studies)
+  weight_tqab: 1.0
+  weight_pqab: 1.0
+  weight_cqab: 1.0
+
+diseases:
+  - asthma
+  - diabetes_t2
+  - hypertension
+  - colorectal_cancer
+  - aml
+  - cml
+
+evaluation:
+  metrics:
+    - auc_roc
+    - auc_pr
+  min_known_synergies: 10
+
+visualization:
+  dpi: 300
+  figure_format: 'png'
+  top_k_predictions: 20

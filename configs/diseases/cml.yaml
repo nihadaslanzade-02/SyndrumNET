@@ -1,0 +1,16 @@
+# Chronic Myeloid Leukemia (CML) specific configuration
+disease_name: "Chronic Myeloid Leukemia"
+disease_id: "cml"
+
+# Known targets
+key_genes:
+  - BCR
+  - ABL1
+  - PDGFRA
+  - KIT
+
+# Known drugs
+known_drugs:
+  - imatinib
+  - dasatinib
+  - nilotinib

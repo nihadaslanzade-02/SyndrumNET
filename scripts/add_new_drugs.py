@@ -4,6 +4,7 @@ Add new drugs to the pipeline.
 
 import argparse
 
+
 def main():
     parser = argparse.ArgumentParser(description="Add new drugs")
     parser.add_argument('--lincs', type=str, required=True, help="File with LINCS IDs")

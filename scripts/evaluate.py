@@ -5,17 +5,20 @@ Computes AUC-ROC, AUC-PR, and other metrics.
 """
 
 import argparse
-import logging
 from pathlib import Path
 
 import pandas as pd
 
 from syndrumnet.eval.benchmarks import load_known_synergies
-from syndrumnet.eval.metrics import evaluate_predictions, compute_roc_curve, compute_precision_recall_curve
+from syndrumnet.eval.metrics import (
+    compute_precision_recall_curve,
+    compute_roc_curve,
+    evaluate_predictions,
+)
 from syndrumnet.eval.reporting import generate_evaluation_report
-from syndrumnet.viz.plots import plot_roc_curve, plot_pr_curve, plot_auc_comparison
 from syndrumnet.utils.config import load_config
 from syndrumnet.utils.logging import setup_logger
+from syndrumnet.viz.plots import plot_auc_comparison, plot_pr_curve, plot_roc_curve
 
 
 def main():

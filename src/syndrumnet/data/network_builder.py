@@ -7,17 +7,17 @@ a unified network graph for propagation and distance calculations.
 
 import logging
 from pathlib import Path
-from typing import Dict, List, Optional, Set, Tuple
+from typing import Dict, List, Optional
 
 import networkx as nx
 import pandas as pd
 
+from syndrumnet.io.id_mapping import IDMapper
 from syndrumnet.io.parsers import (
-    parse_huri,
     parse_corum,
+    parse_huri,
     parse_phosphositeplus,
 )
-from syndrumnet.io.id_mapping import IDMapper
 
 logger = logging.getLogger(__name__)
 
@@ -136,7 +136,10 @@ class NetworkBuilder:
         all_genes = list(all_genes)
         
         logger.info(f"Harmonizing {len(all_genes)} unique genes")
-        harmonized = self.id_mapper.harmonize_gene_list(all_genes)
+        # TODO: harmonize_gene_list() is called but its result is discarded, and
+        # the mapping below is built from a separate to_hgnc() call instead.
+        # Resolve which of the two is authoritative before running the pipeline.
+        harmonized = self.id_mapper.harmonize_gene_list(all_genes)  # noqa: F841
         
         gene_map = dict(zip(all_genes, self.id_mapper.to_hgnc(all_genes)))
         

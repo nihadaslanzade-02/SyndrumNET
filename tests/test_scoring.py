@@ -1,11 +1,9 @@
 """Tests for scoring functions."""
 
-import pytest
 import networkx as nx
 
-from syndrumnet.scoring.tqab import compute_tqab
-from syndrumnet.scoring.pqab import compute_pqab
 from syndrumnet.scoring.cqab import compute_cqab
+from syndrumnet.scoring.tqab import compute_tqab
 
 
 def test_tqab_complementary():

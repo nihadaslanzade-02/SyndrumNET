@@ -1,0 +1,79 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install ruff
+        run: pip install ruff
+
+      # F821 (undefined name) is the rule that matters most in this repository:
+      # every subpackage was once unimportable because typing names were used
+      # without being imported. This job fails on any recurrence.
+      - name: Lint
+        run: ruff check --output-format=github .
+
+  test:
+    name: Test (Python ${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.10", "3.11", "3.12"]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+          cache-dependency-path: pyproject.toml
+
+      - name: Install package
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev]"
+
+      # Guards the failure mode that kept this package unusable: annotations are
+      # evaluated at definition time, so a missing typing import raises on
+      # import rather than on call. Importing every module catches that even if
+      # no test happens to exercise the function.
+      - name: Import every module
+        run: |
+          python - <<'PY'
+          import importlib, pathlib, sys
+          failed = []
+          for path in sorted(pathlib.Path("src/syndrumnet").rglob("*.py")):
+              name = ".".join(path.relative_to("src").with_suffix("").parts)
+              name = name.removesuffix(".__init__")
+              try:
+                  importlib.import_module(name)
+              except Exception as exc:
+                  failed.append(f"{name}: {type(exc).__name__}: {exc}")
+          if failed:
+              print("\n".join(failed), file=sys.stderr)
+              sys.exit(1)
+          print("all modules import cleanly")
+          PY
+
+      - name: Run tests
+        run: pytest tests/ -v --cov=syndrumnet --cov-report=term-missing

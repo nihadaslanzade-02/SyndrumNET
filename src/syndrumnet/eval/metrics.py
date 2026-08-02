@@ -5,14 +5,14 @@ Computes AUC-ROC, AUC-PR, and other classification metrics.
 """
 
 import logging
-from typing import Dict, List, Optional, Set, Tuple
+from typing import Dict, Set, Tuple
 
 import numpy as np
 import pandas as pd
 from sklearn.metrics import (
-    roc_auc_score,
     average_precision_score,
     precision_recall_curve,
+    roc_auc_score,
     roc_curve,
 )
 

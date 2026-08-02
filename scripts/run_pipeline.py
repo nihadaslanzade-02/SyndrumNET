@@ -5,13 +5,11 @@ Computes synergy scores for all drug pairs across specified diseases.
 """
 
 import argparse
-import logging
 from pathlib import Path
 
 import pandas as pd
 
 from syndrumnet.data.network_builder import NetworkBuilder
-from syndrumnet.data.modules import ModuleBuilder
 from syndrumnet.scoring.predictor import SynergyPredictor
 from syndrumnet.utils.config import load_config
 from syndrumnet.utils.logging import setup_logger

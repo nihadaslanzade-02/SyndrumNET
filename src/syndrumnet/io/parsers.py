@@ -4,10 +4,9 @@ Parsers for all data sources.
 Each parser converts raw data files to standardized pandas DataFrames.
 """
 
-import gzip
 import logging
 from pathlib import Path
-from typing import Dict, List, Set, Tuple
+from typing import Dict, List
 
 import pandas as pd
 
@@ -223,7 +222,10 @@ def parse_lincs(
     df = pd.read_csv(sig_filepath, sep='\t', index_col=0)
     
     # Read metadata
-    meta = pd.read_csv(meta_filepath, sep='\t')
+    # TODO: the metadata table is loaded but never joined. It carries the
+    # signature-to-compound mapping, so the drug keys below are still raw
+    # signature identifiers rather than compound names.
+    meta = pd.read_csv(meta_filepath, sep='\t')  # noqa: F841
     
     signatures = {}
     

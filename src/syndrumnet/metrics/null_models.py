@@ -72,8 +72,7 @@ def degree_preserving_randomization(
     
     # Generate random modules
     random_modules = []
-    all_genes = list(G.nodes())
-    
+
     for _ in range(n_random):
         random_module = set()
         

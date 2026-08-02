@@ -6,10 +6,9 @@ in Iida et al. (2024) and Guney et al. (2016).
 """
 
 import logging
-from typing import Dict, Optional, Set, Tuple
+from typing import Dict, Set, Tuple
 
 import networkx as nx
-import numpy as np
 
 logger = logging.getLogger(__name__)
 

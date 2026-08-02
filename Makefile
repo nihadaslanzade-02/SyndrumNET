@@ -1,6 +1,6 @@
 # Makefile for SyndrumNET pipeline
 
-.PHONY: all data pipeline evaluate figures test clean appendix help
+.PHONY: all data pipeline evaluate figures test lint api clean appendix help
 
 # Default target
 all: data pipeline evaluate figures
@@ -24,6 +24,14 @@ figures:
 # Run tests
 test:
 	pytest tests/ -v --cov=syndrumnet --cov-report=html
+
+# Lint (same gate CI runs)
+lint:
+	ruff check .
+
+# Regenerate the API reference from source
+api:
+	python scripts/gen_api_docs.py > docs/API.md
 
 # Clean generated files
 clean:
@@ -52,6 +60,8 @@ help:
 	@echo "  evaluate   - Evaluate predictions against known synergies"
 	@echo "  figures    - Generate all visualization figures"
 	@echo "  test       - Run test suite"
+	@echo "  lint       - Run ruff (same gate as CI)"
+	@echo "  api        - Regenerate docs/API.md from source"
 	@echo "  clean      - Remove generated files"
 	@echo "  appendix   - Generate code appendix PDF"
 	@echo "  help       - Show this help message"

@@ -6,10 +6,10 @@ for the CQAB component of the prediction score.
 """
 
 import logging
-from typing import Dict, List, Optional, Set, Tuple
+from typing import Dict, List, Set
 
 import numpy as np
-from scipy.stats import spearmanr, pearsonr
+from scipy.stats import pearsonr, spearmanr
 
 logger = logging.getLogger(__name__)
 

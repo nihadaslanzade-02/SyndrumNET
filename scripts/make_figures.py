@@ -3,19 +3,18 @@ Generate all visualization figures.
 """
 
 import argparse
-import logging
 from pathlib import Path
 
 import pandas as pd
 
 from syndrumnet.data.network_builder import NetworkBuilder
+from syndrumnet.utils.config import load_config
+from syndrumnet.utils.logging import setup_logger
 from syndrumnet.viz.plots import (
     plot_degree_distribution,
     plot_score_distributions,
     plot_top_predictions,
 )
-from syndrumnet.utils.config import load_config
-from syndrumnet.utils.logging import setup_logger
 
 
 def main():

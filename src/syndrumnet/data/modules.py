@@ -8,13 +8,13 @@ Defines modules as sets of genes that characterize diseases or drug effects:
 
 import logging
 from pathlib import Path
-from typing import Dict, List, Optional, Set
+from typing import Dict, Optional, Set
 
-import pandas as pd
 import networkx as nx
+import pandas as pd
 
-from syndrumnet.io.parsers import parse_creeds, parse_lincs
 from syndrumnet.io.id_mapping import IDMapper
+from syndrumnet.io.parsers import parse_creeds, parse_lincs
 
 logger = logging.getLogger(__name__)
 

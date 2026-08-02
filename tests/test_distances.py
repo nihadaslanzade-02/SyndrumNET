@@ -1,12 +1,11 @@
 """Tests for distance and proximity calculations."""
 
-import pytest
 import networkx as nx
 
 from syndrumnet.metrics.distances import (
-    shortest_path_distance,
     module_proximity,
     separation_score,
+    shortest_path_distance,
 )
 
 

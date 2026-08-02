@@ -6,7 +6,7 @@ All plots use matplotlib only (no seaborn) as specified.
 
 import logging
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, Optional
 
 import matplotlib.pyplot as plt
 import networkx as nx

@@ -1,11 +1,10 @@
 """Tests for null model randomization."""
 
-import pytest
 import networkx as nx
 
 from syndrumnet.metrics.null_models import (
-    degree_preserving_randomization,
     compute_zscore,
+    degree_preserving_randomization,
 )
 
 

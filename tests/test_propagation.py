@@ -1,8 +1,6 @@
 """Tests for PRINCE propagation."""
 
-import pytest
 import networkx as nx
-import numpy as np
 
 from syndrumnet.propagation.prince import PRINCE
 

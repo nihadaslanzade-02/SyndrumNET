@@ -5,8 +5,6 @@ Downloads GEO data, builds signatures, and computes predictions.
 """
 
 import argparse
-import logging
-from pathlib import Path
 
 # Placeholder for new disease addition
 # Full implementation requires GEO data fetching and signature building

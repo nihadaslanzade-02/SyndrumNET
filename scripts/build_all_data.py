@@ -10,13 +10,12 @@ This script:
 """
 
 import argparse
-import logging
 from pathlib import Path
 
+from syndrumnet.data.modules import ModuleBuilder
+from syndrumnet.data.network_builder import NetworkBuilder
 from syndrumnet.io.downloaders import DataDownloader
 from syndrumnet.io.id_mapping import IDMapper
-from syndrumnet.data.network_builder import NetworkBuilder
-from syndrumnet.data.modules import ModuleBuilder
 from syndrumnet.utils.config import load_config
 from syndrumnet.utils.logging import setup_logger
 from syndrumnet.utils.seeds import set_random_seed

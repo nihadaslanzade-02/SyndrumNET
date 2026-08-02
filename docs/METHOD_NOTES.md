@@ -88,8 +88,8 @@ disconnection heavily.
 
 ## Deviations from the paper
 
-1. **KCF-S fingerprints** — Morgan fingerprints (RDKit) are used as a proxy.
-2. **Some data sources** — placeholders where registration or an API key is
+1. **KCF-S fingerprints** - Morgan fingerprints (RDKit) are used as a proxy.
+2. **Some data sources** - placeholders where registration or an API key is
    required (KEGG RPair, several disease-gene resources).
 
 All deviations are also marked in the code comments at the point where they

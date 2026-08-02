@@ -7,14 +7,14 @@ into final prediction scores.
 
 import logging
 from pathlib import Path
-from typing import Dict, List, Optional, Set, Tuple
+from typing import Dict, List, Optional, Set
 
 import networkx as nx
 import pandas as pd
 
-from syndrumnet.scoring.tqab import compute_tqab_batch
-from syndrumnet.scoring.pqab import compute_pqab_batch
 from syndrumnet.scoring.cqab import compute_cqab_batch
+from syndrumnet.scoring.pqab import compute_pqab_batch
+from syndrumnet.scoring.tqab import compute_tqab_batch
 
 logger = logging.getLogger(__name__)
 

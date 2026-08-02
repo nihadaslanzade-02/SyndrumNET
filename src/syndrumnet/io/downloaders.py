@@ -10,8 +10,7 @@ import logging
 import shutil
 import time
 from pathlib import Path
-from typing import Dict, List, Optional
-from urllib.parse import urljoin
+from typing import Dict, Optional
 
 import requests
 from tqdm import tqdm
@@ -309,7 +308,7 @@ class DataDownloader:
         
         with open(self.version_file, 'w') as f:
             f.write(f"# Data versions - Downloaded on {datetime.now()}\n")
-            f.write(f"# SyndrumNET Reproduction Pipeline\n\n")
+            f.write("# SyndrumNET Reproduction Pipeline\n\n")
             
             for source, path in files.items():
                 if path.exists():

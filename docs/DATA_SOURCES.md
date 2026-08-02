@@ -25,7 +25,7 @@ Check the individual terms before redistributing anything derived from them.
 
 | Source | Description | License | Citation |
 |---|---|---|---|
-| [ClinVar](https://www.ncbi.nlm.nih.gov/clinvar/) | Clinical variant-disease associations | Public domain | — |
+| [ClinVar](https://www.ncbi.nlm.nih.gov/clinvar/) | Clinical variant-disease associations | Public domain | - |
 | [DisGeNET](https://www.disgenet.org/) | Gene-disease associations | CC BY-NC-SA 4.0 | Piñero et al. (2020) *Nucleic Acids Res* |
 
 ## ID mapping

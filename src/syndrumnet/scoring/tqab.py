@@ -9,7 +9,6 @@ import logging
 from typing import Dict, List, Set, Tuple
 
 import networkx as nx
-import numpy as np
 
 from syndrumnet.metrics.distances import separation_score
 

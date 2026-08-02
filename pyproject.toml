@@ -9,6 +9,8 @@ description = "Reproducible implementation of SyndrumNET for synergistic drug co
 readme = "README.md"
 requires-python = ">=3.10"
 license = {text = "MIT"}
+# NOTE: authorship left as-is pending confirmation of who wrote this
+# implementation relative to the thesis it reproduces. See README "Citations".
 authors = [
     {name = "SyndrumNET Reproduction Team"}
 ]
@@ -19,6 +21,7 @@ classifiers = [
     "License :: OSI Approved :: MIT License",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
     "Topic :: Scientific/Engineering :: Bio-Informatics",
 ]
 
@@ -41,22 +44,31 @@ dependencies = [
 dev = [
     "pytest>=7.4.0",
     "pytest-cov>=4.1.0",
-    "black>=23.7.0",
+    "ruff>=0.6.0",
     "mypy>=1.5.0",
-    "flake8>=6.1.0",
 ]
 
 [project.urls]
-Homepage = "https://github.com/yourusername/SyndrumNET-repro"
-Documentation = "https://syndrumnet-repro.readthedocs.io"
-Repository = "https://github.com/yourusername/SyndrumNET-repro"
+Homepage = "https://github.com/nihadaslanzade-02/SyndrumNET"
+Repository = "https://github.com/nihadaslanzade-02/SyndrumNET"
+Issues = "https://github.com/nihadaslanzade-02/SyndrumNET/issues"
 
 [tool.setuptools.packages.find]
 where = ["src"]
 
-[tool.black]
+[tool.setuptools.package-data]
+syndrumnet = ["py.typed"]
+
+[tool.ruff]
 line-length = 88
-target-version = ["py310", "py311"]
+target-version = "py310"
+src = ["src", "scripts", "tests"]
+
+[tool.ruff.lint]
+# E4/E7/E9 + F is ruff's default set. F821 (undefined name) is the rule that
+# matters most here: every subpackage was once unimportable because typing names
+# were used without being imported, and CI now fails on any recurrence.
+select = ["E4", "E7", "E9", "F", "I"]
 
 [tool.mypy]
 python_version = "3.10"

@@ -6,11 +6,9 @@ propagation priors or regularization terms.
 """
 
 import logging
-from typing import Dict, List, Optional, Set, Tuple
+from typing import Dict, List, Set
 
 import numpy as np
-from scipy.spatial.distance import pdist, squareform
-from scipy.stats import pearsonr
 
 logger = logging.getLogger(__name__)
 
@@ -139,9 +137,8 @@ def kcf_fingerprint_similarity(
     For now, uses Morgan fingerprints as proxy.
     """
     try:
-        from rdkit import Chem
+        from rdkit import Chem, DataStructs
         from rdkit.Chem import AllChem
-        from rdkit import DataStructs
         
         # Parse SMILES
         mol_a = Chem.MolFromSmiles(smiles_a)

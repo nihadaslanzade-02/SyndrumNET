@@ -2,7 +2,7 @@
 
 End-to-end reproduction in ten commands or fewer.
 
-> **Before running:** the package does not currently import — see the Status
+> **Before running:** the package does not currently import - see the Status
 > section in [README.md](README.md#status--what-runs-today). The sequence below
 > is the intended flow once those imports are fixed.
 

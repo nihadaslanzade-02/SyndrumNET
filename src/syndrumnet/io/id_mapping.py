@@ -7,10 +7,10 @@ to ensure consistent gene names across all data sources.
 
 import logging
 from pathlib import Path
-from typing import Dict, List, Optional, Set
+from typing import Dict, List, Optional
 
-import pandas as pd
 import mygene
+import pandas as pd
 
 logger = logging.getLogger(__name__)
 

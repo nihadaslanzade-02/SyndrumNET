@@ -4,8 +4,8 @@ Reproducibility utilities for random seed management.
 Ensures all random operations (NumPy, Python random, NetworkX) use consistent seeds.
 """
 
-import random
 import logging
+import random
 from typing import Optional
 
 import numpy as np

@@ -1,0 +1,12 @@
+# Normalise line endings, so a Windows checkout and a Linux CI run agree.
+# Without this the result depends on each clone's core.autocrlf setting, which
+# is per-machine and invisible in the repository.
+* text=auto eol=lf
+
+# A Makefile with CRLF endings fails on Linux and macOS: GNU make keeps the
+# carriage return as part of the recipe, so every command line is wrong.
+Makefile text eol=lf
+
+# Generated from source by scripts/gen_api_docs.py. Marked so its diffs are
+# collapsed by default in reviews.
+docs/API.md linguist-generated=true

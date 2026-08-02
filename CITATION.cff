@@ -1,0 +1,58 @@
+cff-version: 1.2.0
+title: >-
+  SyndrumNET: a Python implementation of network-based
+  prediction of synergistic drug combinations
+message: >-
+  If you use this software, please cite both this
+  repository and the Iida et al. (2024) paper that
+  describes the method it implements.
+type: software
+authors:
+  - family-names: Aslanzade
+    given-names: Nihad
+    alias: nihadaslanzade-02
+repository-code: https://github.com/nihadaslanzade-02/SyndrumNET
+license: MIT
+version: 1.0.0
+keywords:
+  - drug-combinations
+  - drug-synergy
+  - network-propagation
+  - network-medicine
+  - systems-biology
+  - bioinformatics
+abstract: >-
+  A Python implementation of SyndrumNET, a network-based
+  trans-omics method for predicting synergistic drug
+  combinations. Integrates seven molecular-interaction
+  resources into a single human interactome, builds gene
+  modules for diseases and drugs from expression
+  signatures, propagates signal with PRINCE, and scores
+  drug pairs on network topology, disease proximity and
+  transcriptional reversal.
+references:
+  - type: article
+    title: >-
+      A network-based trans-omics approach for predicting
+      synergistic drug combinations
+    authors:
+      - family-names: Iida
+        given-names: M.
+    year: 2024
+    journal: Communications Medicine
+  - type: article
+    title: >-
+      Associating genes and protein complexes with disease
+      via network propagation
+    authors:
+      - family-names: Vanunu
+        given-names: O.
+    year: 2010
+    journal: PLoS Computational Biology
+  - type: article
+    title: Network-based in silico drug efficacy screening
+    authors:
+      - family-names: Guney
+        given-names: E.
+    year: 2016
+    journal: Nature Communications

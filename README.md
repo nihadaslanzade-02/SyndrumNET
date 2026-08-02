@@ -232,21 +232,26 @@ No data is committed to this repository; `data/` is populated by `build_all_data
 
 ## Citations
 
-This implementation follows:
+The method implemented here:
 
-1. **Rahim Rahimov (2025).** *Reproducing and Extending the SyndrumNET Model for Synergistic Drug Combination Prediction.* Master's Thesis.
-2. **Iida et al. (2024).** *A network-based trans-omics approach for predicting synergistic drug combinations (SyndrumNET).* Communications Medicine.
+1. **Iida et al. (2024).** *A network-based trans-omics approach for predicting synergistic drug combinations (SyndrumNET).* Communications Medicine.
 
 Methodological foundations:
 
-3. **Vanunu et al. (2010).** *Associating genes and protein complexes with disease via network propagation.* PLoS Computational Biology. (PRINCE)
-4. **Guney et al. (2016).** *Network-based in silico drug efficacy screening.* Nature Communications. (network proximity and the degree-preserving null model)
-5. **Cowen et al. (2017).** *Network propagation: a universal amplifier of genetic associations.* Nature Reviews Genetics.
+2. **Vanunu et al. (2010).** *Associating genes and protein complexes with disease via network propagation.* PLoS Computational Biology. (PRINCE)
+3. **Guney et al. (2016).** *Network-based in silico drug efficacy screening.* Nature Communications. (network proximity and the degree-preserving null model)
+4. **Cowen et al. (2017).** *Network propagation: a universal amplifier of genetic associations.* Nature Reviews Genetics.
+
+If you use this code, please cite the Iida et al. paper for the method and this repository for the implementation. [`CITATION.cff`](CITATION.cff) has the machine-readable form, and GitHub's "Cite this repository" button reads from it.
+
+## Acknowledgements
+
+The starting point for this project was **Rahim Rahimov's** Master's thesis, *Reproducing and Extending the SyndrumNET Model for Synergistic Drug Combination Prediction* (2025), which is what got me interested in the method in the first place. The implementation in this repository is my own.
 
 ## License
 
 [MIT](LICENSE). The licence covers this implementation only; the integrated data sources carry their own terms.
 
-## Contact
+## Author
 
 Nihad Aslanzade, [github.com/nihadaslanzade-02](https://github.com/nihadaslanzade-02)

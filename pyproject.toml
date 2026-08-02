@@ -9,10 +9,8 @@ description = "Reproducible implementation of SyndrumNET for synergistic drug co
 readme = "README.md"
 requires-python = ">=3.10"
 license = {text = "MIT"}
-# NOTE: authorship left as-is pending confirmation of who wrote this
-# implementation relative to the thesis it reproduces. See README "Citations".
 authors = [
-    {name = "SyndrumNET Reproduction Team"}
+    {name = "Nihad Aslanzade"}
 ]
 keywords = ["drug-combinations", "network-propagation", "systems-biology", "precision-medicine"]
 classifiers = [

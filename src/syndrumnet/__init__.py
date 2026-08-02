@@ -6,7 +6,7 @@ and extends it per Aslanzadə's thesis.
 """
 
 __version__ = "1.0.0"
-__author__ = "SyndrumNET Reproduction Team"
+__author__ = "Nihad Aslanzade"
 
 from syndrumnet.utils.config import load_config
 from syndrumnet.utils.logging import setup_logger

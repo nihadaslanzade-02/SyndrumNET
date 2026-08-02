@@ -1,158 +1,96 @@
-\# SyndrumNET Implementation Notes
+# SyndrumNET Implementation Notes
 
+Mathematical details and the implementation choices made where the published
+method leaves room for interpretation.
 
+## Mathematical details
 
-\## Mathematical Details
+### Network proximity
 
-
-
-\### Network Proximity
-
-
-
-Disease-drug proximity is computed as:
-
-
+Disease-drug proximity is the average, over the source module, of the distance
+to the nearest gene in the target module:
 
 ```
-
-d(S,T) = (1/|S|) \* sum\_{s in S} min\_{t in T} dist(s,t)
-
+d(S,T) = (1/|S|) * sum_{s in S} min_{t in T} dist(s,t)
 ```
 
-
-
-Z-score normalization uses degree-preserving randomization:
-
-
+Raw distances are not comparable across modules of different size and degree
+composition, so each is converted to a z-score against a null distribution:
 
 ```
-
-z(d\_QA) = (d\_QA - mean(d\_random)) / std(d\_random)
-
+z(d_QA) = (d_QA - mean(d_random)) / std(d_random)
 ```
 
+### Topological class score (TQAB)
 
+A drug pair is classified relative to the disease module using two quantities:
 
-\### Topological Class Score (TQAB)
+1. **Drug-drug separation**: `s_AB = d_AB - (d_AA + d_BB)/2`
+2. **Disease-drug proximities**: `d_AQ`, `d_BQ`
 
+| Condition | Class |
+|---|---|
+| `s_AB > 0` and both drugs close to the disease | Complementary |
+| `s_AB > 0`, at least one drug far from the disease | Intermediate |
+| `s_AB <= 0` | Redundant |
 
+The threshold for "close" is a distance of 3 hops, set in `scoring/tqab.py`.
 
-Drug pair topology relative to disease is classified based on:
+### PRINCE propagation
 
-
-
-1\. \*\*Drug-drug separation\*\*: s\_AB = d\_AB - (d\_AA + d\_BB)/2
-
-2\. \*\*Disease-drug proximities\*\*: d\_AQ, d\_BQ
-
-
-
-Complementary: s\_AB > 0 and both drugs close to disease
-
-Redundant: s\_AB < 0 or drugs far from disease
-
-
-
-\### PRINCE Propagation
-
-
-
-Iterative update:
+Random walk with restart, iterated to convergence:
 
 ```
-
-F^(t+1) = α \* W \* F^(t) + (1-α) \* F^(0)
-
+F^(t+1) = alpha * W * F^(t) + (1 - alpha) * F^(0)
 ```
 
+where `F^(t)` is the score vector at iteration `t`, `W` the normalised adjacency
+matrix, `alpha` the restart probability (default 0.5), and `F^(0)` the seed
+vector. Iteration stops when the L2 norm of the update falls below 1e-6, or at
+1000 iterations.
 
-
-where:
-
-\- F^(t): node scores at iteration t
-
-\- W: normalized adjacency matrix
-
-\- α: restart probability (default: 0.5)
-
-\- F^(0): initial seed vector
-
-
-
-\### Final Prediction
-
-
+### Final prediction
 
 ```
-
-Score\_Q,AB = TQAB + PQAB + CQAB
-
+Score_Q,AB = TQAB + PQAB + CQAB
 ```
 
+where `PQAB = (P_QA + P_QB)/2` is the average proximity z-score and
+`CQAB = (C_QA + C_QB)/2` the average transcriptional correlation.
 
+## Implementation choices
 
-where:
+### Cell line handling (L1000)
 
-\- TQAB: topological class score
+A compound is profiled in several cell lines, and the method does not specify
+how to reconcile them. Here:
 
-\- PQAB = (P\_QA + P\_QB)/2: average proximity
+- Fold changes are aggregated per gene by **median across all cell lines**,
+  which is robust to a single anomalous line.
+- The drug module is the **top 5% of genes by absolute fold change**.
 
-\- CQAB = (C\_QA + C\_QB)/2: average transcriptional correlation
+### Null model
 
+Degree-preserving randomisation, so that a module cannot score as "proximal"
+merely because it contains hub genes:
 
+- 1000 randomisations by default
+- Genes binned into 20 degree strata
+- Random modules resampled within strata
 
-\## Implementation Choices
+### Distance handling
 
+Disconnected node pairs are assigned a large finite value (1000.0) rather than
+infinity. An `inf` anywhere in a module would make every average containing it
+`inf`, discarding the information carried by the connected pairs; a large finite
+sentinel keeps the average dominated by real distances while still penalising
+disconnection heavily.
 
+## Deviations from the paper
 
-\### Cell Line Handling (L1000)
+1. **KCF-S fingerprints** — Morgan fingerprints (RDKit) are used as a proxy.
+2. **Some data sources** — placeholders where registration or an API key is
+   required (KEGG RPair, several disease-gene resources).
 
-
-
-Drug signatures are aggregated across cell lines using:
-
-\- Median fold-change per gene across all cell lines
-
-\- Top 5% genes by |fold-change| define drug modules
-
-
-
-\### Null Model
-
-
-
-Degree-preserving randomization:
-
-\- 1000 randomizations by default
-
-\- Genes binned by degree (20 bins)
-
-\- Random sampling within bins
-
-
-
-\### Distance Handling
-
-
-
-Disconnected nodes:
-
-\- Set to large finite value (1000.0) rather than infinity
-
-\- Allows graceful handling of network components
-
-
-
-\## Deviations from Paper
-
-
-
-1\. \*\*KCF-S fingerprints\*\*: Using Morgan fingerprints as proxy (RDKit)
-
-2\. \*\*Some data sources\*\*: Placeholders where registration/API required
-
-
-
-All deviations documented in code comments.
-
+All deviations are also marked in the code comments at the point where they
+apply.

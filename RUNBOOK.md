@@ -1,92 +1,71 @@
-\## RUNBOOK
+# Runbook
 
+End-to-end reproduction in ten commands or fewer.
 
+> **Before running:** the package does not currently import — see the Status
+> section in [README.md](README.md#status--what-runs-today). The sequence below
+> is the intended flow once those imports are fixed.
 
-\### Complete End-to-End Reproduction (≤10 commands)
-
-
+## Complete run
 
 ```bash
-
-\# 1. Setup
-
-conda env create -f environment.yml \&\& conda activate syndrumnet
-
+# 1. Setup
+conda env create -f environment.yml && conda activate syndrumnet
 pip install -e .
 
+# 2. Build all data (first time only, ~2-4 hours)
+python scripts/build_all_data.py --config configs/default.yaml
 
+# 3. Run the full pipeline (~1-2 hours)
+python scripts/run_pipeline.py --config configs/default.yaml
 
-\# 2. Build all data (first time only, ~2-4 hours)
-
-python scripts/build\_all\_data.py --config configs/default.yaml
-
-
-
-\# 3. Run full pipeline (~1-2 hours)
-
-python scripts/run\_pipeline.py --config configs/default.yaml
-
-
-
-\# 4. Evaluate against known synergies
-
+# 4. Evaluate against known synergies
 python scripts/evaluate.py --config configs/default.yaml
 
+# 5. Generate all figures
+python scripts/make_figures.py --config configs/default.yaml
 
-
-\# 5. Generate all figures
-
-python scripts/make\_figures.py --config configs/default.yaml
-
-
-
-\# 6. View results
-
-cat reports/tables/evaluation\_summary.csv
-
+# 6. View results
+cat reports/tables/evaluation_summary.csv
 ls reports/figures/
-
-
-
-\# Optional: Run tests
-
-pytest tests/ -v
-
-
-
-\# Optional: Generate code appendix
-
-make appendix  # Creates Appendix\_Code.pdf
-
 ```
 
+Or simply `make all`, which chains steps 2-5.
 
+Optional:
 
-\### Expected Runtime
+```bash
+pytest tests/ -v        # run the test suite
+make appendix           # build Appendix_Code.pdf (requires pandoc + xelatex)
+```
 
-\- Data download: 1-2 hours (one-time)
+## Expected runtime
 
-\- Data preprocessing: 30-60 minutes (one-time)  
+| Stage | Time |
+|---|---|
+| Data download | 1-2 hours (one-time) |
+| Data preprocessing | 30-60 minutes (one-time) |
+| Pipeline execution | 1-2 hours per run |
+| Figure generation | 5-10 minutes |
+| **First run, total** | **~3-5 hours** |
+| **Subsequent runs** | **~1-2 hours** (data cached) |
 
-\- Pipeline execution: 1-2 hours per run
+## Expected outputs
 
-\- Figure generation: 5-10 minutes
+| Path | Contents |
+|---|---|
+| `reports/tables/predictions_<disease>.csv` | One file per disease, all drug pair scores |
+| `reports/tables/evaluation_summary.csv` | AUC-ROC / AUC-PR per disease |
+| `reports/figures/*.png` | ~15-20 figures at 300 dpi |
+| `logs/*.log` | Detailed execution logs |
 
-\- \*\*Total first run: ~3-5 hours\*\*
+## Troubleshooting
 
-\- \*\*Subsequent runs: ~1-2 hours\*\* (data cached)
+**Out of memory.** Reduce `n_cores` in the config, or process diseases one at a
+time with repeated `--diseases` flags.
 
+**Download failures.** Some sources need registration (PhosphoSitePlus). Retry
+partial downloads with `python scripts/build_all_data.py --retry-failed`.
 
-
-\### Expected Outputs
-
-\- `reports/tables/predictions\_\*.csv`: One file per disease with all drug pair scores
-
-\- `reports/tables/evaluation\_summary.csv`: AUC/PR metrics
-
-\- `reports/figures/\*.png`: ~15-20 publication-quality figures
-
-\- `logs/\*.log`: Detailed execution logs
-
-"""
-
+**Reproducibility.** Keep `random_seed` fixed in the config; data source versions
+are logged to `data/raw/VERSIONS.txt` during the build.

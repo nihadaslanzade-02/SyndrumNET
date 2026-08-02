@@ -1,130 +1,42 @@
-\# Data Sources and Licenses
+# Data Sources and Licenses
 
+No data is committed to this repository. Everything below is fetched by
+`scripts/build_all_data.py` into `data/raw/`.
 
+Licences vary, and several sources are non-commercial or require registration.
+Check the individual terms before redistributing anything derived from them.
 
-\## Molecular Interactions
+## Molecular interactions
 
+| Source | Description | License | Citation |
+|---|---|---|---|
+| [HuRI](http://www.interactome-atlas.org/) | Human Reference Interactome | Academic use permitted | Luck et al. (2020) *Nature* |
+| [CORUM](https://mips.helmholtz-muenchen.de/corum/) | Protein complexes | Free for academic use | Giurgiu et al. (2019) *Nucleic Acids Res* |
+| [PhosphoSitePlus](https://www.phosphosite.org/) | Kinase-substrate interactions | **Registration required** | Hornbeck et al. (2015) *Nucleic Acids Res* |
 
+## Expression data
 
-\### HuRI
+| Source | Description | License | Citation |
+|---|---|---|---|
+| [CREEDS](https://maayanlab.cloud/Harmonizome/) | Disease expression signatures | CC BY-NC-SA 4.0 | Wang et al. (2016) *Database* |
+| [LINCS L1000](https://lincsproject.org/) | Drug perturbation profiles | Public domain | Subramanian et al. (2017) *Cell* |
 
-\- \*\*Source\*\*: http://www.interactome-atlas.org/
+## Disease genes
 
-\- \*\*Description\*\*: Human Reference Interactome
+| Source | Description | License | Citation |
+|---|---|---|---|
+| [ClinVar](https://www.ncbi.nlm.nih.gov/clinvar/) | Clinical variant-disease associations | Public domain | — |
+| [DisGeNET](https://www.disgenet.org/) | Gene-disease associations | CC BY-NC-SA 4.0 | Piñero et al. (2020) *Nucleic Acids Res* |
 
-\- \*\*License\*\*: Academic use permitted
+## ID mapping
 
-\- \*\*Citation\*\*: Luck et al. (2020) Nature
-
-
-
-\### CORUM
-
-\- \*\*Source\*\*: https://mips.helmholtz-muenchen.de/corum/
-
-\- \*\*Description\*\*: Protein complex database
-
-\- \*\*License\*\*: Free for academic use
-
-\- \*\*Citation\*\*: Giurgiu et al. (2019) Nucleic Acids Res
-
-
-
-\### PhosphoSitePlus
-
-\- \*\*Source\*\*: https://www.phosphosite.org/
-
-\- \*\*Description\*\*: Kinase-substrate interactions
-
-\- \*\*License\*\*: Registration required
-
-\- \*\*Citation\*\*: Hornbeck et al. (2015) Nucleic Acids Res
-
-
-
-\## Expression Data
-
-
-
-\### CREEDS
-
-\- \*\*Source\*\*: https://maayanlab.cloud/Harmonizome/
-
-\- \*\*Description\*\*: Disease expression signatures
-
-\- \*\*License\*\*: CC BY-NC-SA 4.0
-
-\- \*\*Citation\*\*: Wang et al. (2016) Database
-
-
-
-\### LINCS L1000
-
-\- \*\*Source\*\*: https://lincsproject.org/
-
-\- \*\*Description\*\*: Drug perturbation profiles
-
-\- \*\*License\*\*: Public domain
-
-\- \*\*Citation\*\*: Subramanian et al. (2017) Cell
-
-
-
-\## Disease Genes
-
-
-
-\### ClinVar
-
-\- \*\*Source\*\*: https://www.ncbi.nlm.nih.gov/clinvar/
-
-\- \*\*Description\*\*: Clinical variant-disease associations
-
-\- \*\*License\*\*: Public domain
-
-
-
-\### DisGeNET
-
-\- \*\*Source\*\*: https://www.disgenet.org/
-
-\- \*\*Description\*\*: Gene-disease associations
-
-\- \*\*License\*\*: CC BY-NC-SA 4.0
-
-\- \*\*Citation\*\*: Piñero et al. (2020) Nucleic Acids Res
-
-
-
-\## ID Mapping
-
-
-
-\### HGNC
-
-\- \*\*Source\*\*: https://www.genenames.org/
-
-\- \*\*Description\*\*: Gene nomenclature
-
-\- \*\*License\*\*: Free for all use
-
-
-
-\### UniProt
-
-\- \*\*Source\*\*: https://www.uniprot.org/
-
-\- \*\*Description\*\*: Protein ID mapping
-
-\- \*\*License\*\*: CC BY 4.0
-
-
+| Source | Description | License |
+|---|---|---|
+| [HGNC](https://www.genenames.org/) | Gene nomenclature | Free for all use |
+| [UniProt](https://www.uniprot.org/) | Protein ID mapping | CC BY 4.0 |
 
 ---
 
-
-
-\*\*Note\*\*: Always cite original data sources in publications. Check individual
-
-licenses for commercial use restrictions.
-
+**Note:** always cite the original data sources in any publication that uses
+output from this pipeline. The CC BY-NC-SA sources above restrict commercial
+use, and that restriction propagates to derived results.

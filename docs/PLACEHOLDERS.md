@@ -14,17 +14,21 @@ not measured error.
 
 ## Summary
 
-| # | Gap | Where | Visible at runtime? |
+| # | Gap | Where | Status |
 |---|---|---|---|
-| 1 | Interactome uses 3 of the 7 configured sources | `io/downloaders.py`, `io/parsers.py`, `data/network_builder.py` | No |
-| 2 | Disease modules carry no susceptibility genes | `data/modules.py` | Only at `DEBUG` |
-| 3 | Drug keys are LINCS signature IDs, not compounds | `io/parsers.py` | No |
-| 4 | No per-gene aggregation across cell lines | `io/parsers.py` | No |
-| 5 | Morgan fingerprints substitute for KCF-S | `propagation/similarity_layers.py` | Only if RDKit is absent |
-| 6 | `build()` harmonises the gene list twice | `data/network_builder.py` | No, marked `TODO` |
-| 7 | ID mapping is one HTTP request per identifier | `io/id_mapping.py` | As runtime |
-| 8 | Extension scripts are stubs | `scripts/add_new_*.py` | Yes, they print it |
-| 9 | Five of six per-disease configs are empty files | `configs/diseases/` | Now yes, see below |
+| 1 | Interactome uses 3 of the 7 configured sources | `io/downloaders.py`, `io/parsers.py`, `data/network_builder.py` | Open, silent |
+| 2 | Disease modules carry no susceptibility genes | `data/modules.py` | Open, `DEBUG` only |
+| 3 | Drug keys were LINCS signature IDs, not compounds | `io/parsers.py` | **Fixed** |
+| 4 | No per-gene aggregation across cell lines | `io/parsers.py` | **Fixed** |
+| 5 | Morgan fingerprints substitute for KCF-S | `propagation/similarity_layers.py` | Open, by design |
+| 6 | `build()` harmonised the gene list twice | `data/network_builder.py` | **Fixed** |
+| 7 | ID mapping was one HTTP request per identifier | `io/id_mapping.py` | **Fixed** |
+| 8 | Extension scripts are stubs | `scripts/add_new_*.py` | Open, self-declared |
+| 9 | Five of six per-disease configs are empty files | `configs/diseases/` | Open, now loud |
+
+Items 3, 4, 6 and 7 were the ones blocking a first run and its evaluation.
+They are kept below with what they were and what replaced them, because the
+reasoning is the same reasoning anyone finishing items 1 and 2 will need.
 
 ---
 
@@ -116,9 +120,11 @@ DisGeNET uses UMLS CUIs, and OMIM uses its own numbering. Joining them needs a
 disease-term mapping, and how that mapping is drawn will change module
 membership more than the choice of source will.
 
-## 3. Drug keys are LINCS signature IDs, not compounds
+## 3 and 4. Drug keys, and aggregation across cell lines: FIXED
 
-`parse_lincs` loads the metadata table and never joins it:
+One gap and one fix, so they are written together.
+
+**What it was.** `parse_lincs` loaded the metadata table and never joined it:
 
 ```python
 meta = pd.read_csv(meta_filepath, sep='\t')  # noqa: F841
@@ -127,44 +133,49 @@ for drug in df.columns:
     ...
 ```
 
-The metadata carries the signature-to-compound mapping, so `df.columns` are
-raw signature identifiers. Everything downstream inherits those as drug names.
+The metadata carries the signature-to-compound mapping, so `df.columns` were
+raw signature identifiers, and everything downstream inherited those as drug
+names. Separately, `docs/METHOD_NOTES.md` described a per-gene median across
+cell lines as a deliberate implementation choice; no such aggregation existed
+anywhere in the data path.
 
-**Effect.** A compound profiled in several cell lines becomes several distinct
-"drugs". Three consequences, in increasing order of seriousness:
+**What it cost.** A compound assayed in several cell lines became several
+distinct "drugs". Three consequences, in increasing order of seriousness:
 
-1. Pair enumeration is quadratic in the wrong count. Where the config declares
-   1,488 compounds, the signature matrix has more columns than that, and the
-   pair count grows with the square of the difference.
-2. Same-compound pairs are generated and scored. Two signatures of one drug
-   have near-identical modules, so `s_AB` comes out negative and they are
-   classified Overlapping Exposure. They score 0 and do no harm to the
-   ranking, but they consume the compute.
-3. The output cannot be evaluated. `eval/` matches predictions against known
-   synergy resources, which are keyed by compound name. Signature IDs join to
-   nothing, so AUC-ROC and AUC-PR cannot be computed at all until this is
-   fixed.
+1. Pair enumeration was quadratic in the wrong count.
+2. Same-compound pairs were generated and scored. Two signatures of one drug
+   have near-identical modules, so `s_AB` comes out negative and they classify
+   as Overlapping Exposure. They score 0 and do no harm to the ranking, but
+   they consume the compute.
+3. The output could not be evaluated at all. `eval/benchmarks.py` matches
+   predictions against synergy resources keyed by compound name. Signature IDs
+   join to nothing, so AUC-ROC and AUC-PR were unreachable.
 
-**To finish.** Join `meta` on the signature ID column, group the signature
-matrix by compound, and use the compound name as the module key. Point 4 below
-is the same fix.
+**What it is now.** `parse_lincs` joins the metadata, groups the signature
+matrix by compound, and aggregates per gene before taking the percentiles.
+Keys are compound names. Aggregation is `median` by default and `mean` on
+request; median because a single anomalous cell line should not be able to
+carry a gene into the module on its own, which
+`test_median_resists_an_outlier_line_where_mean_does_not` demonstrates
+directly.
 
-## 4. No aggregation across cell lines
+Three details worth knowing:
 
-Related to the above and worth stating separately, because the documentation
-claimed otherwise until this commit. `docs/METHOD_NOTES.md` described a
-per-gene median across cell lines as a deliberate implementation choice. There
-is no such aggregation anywhere in the data path: `parse_lincs` takes each
-column of the signature matrix on its own, and no `groupby` or `median` over
-cell lines exists in `io/`, `data/` or `metrics/`.
-
-The `median` in `metrics/transcription.py` is an unrelated score aggregator
-and does not touch cell lines.
-
-**Effect.** Whatever noise a single cell line carries goes straight into the
-drug module. The top 5% of genes by fold change in one cell line is a noisier
-set than the top 5% of a median profile, and the drug module is the input to
-both the proximity and the transcriptional axis.
+- **The metadata schema is detected, not assumed.** It is not stable across
+  LINCS and L1000CDS2 releases, so the signature-ID and compound-name columns
+  are found from the candidate lists `SIGNATURE_ID_COLUMNS` and
+  `COMPOUND_NAME_COLUMNS`. A file matching neither fails with a `KeyError`
+  naming both what was tried and what the file contains. **This has not been
+  run against a real download**; the candidate lists cover the column names
+  these releases have used, and the failure mode if they are wrong is a loud
+  error rather than a wrong answer.
+- **`pert_id` is deliberately the last name candidate.** A BRD identifier
+  joins to no synergy resource, so if detection falls through to it, expect
+  evaluation to find nothing.
+- **Signatures with no metadata row are dropped with a warning.** Keeping them
+  under their raw ID would silently reintroduce exactly the problem the join
+  removes. A join that matches nothing at all raises instead of returning an
+  empty result.
 
 ## 5. Morgan fingerprints substitute for KCF-S
 
@@ -184,40 +195,80 @@ priors, which is not wired up. It would matter the moment they are.
 a warning and returns `0.0`, which is indistinguishable from "these molecules
 are genuinely dissimilar". A missing dependency currently looks like data.
 
-## 6. `build()` harmonises the gene list twice
+## 5. Morgan fingerprints substitute for KCF-S
 
-Marked `TODO` in place:
+`kcf_fingerprint_similarity` computes an RDKit Morgan fingerprint (radius 2,
+2048 bits) and calls it a KCF-S proxy. KCF-S encodes KEGG-defined chemical
+functional substructures; Morgan encodes circular atom environments. Both
+produce Tanimoto-comparable bit vectors, which is why the substitution is
+mechanically possible, but they are not measuring the same notion of chemical
+similarity.
+
+**Effect on results today: none.** `propagation/similarity_layers.py` is
+exported from the package but no scoring path calls it. The similarity layers
+are infrastructure for using chemical and disease similarity as propagation
+priors, which is not wired up. It would matter the moment they are.
+
+**One sharp edge to know about.** If RDKit is not installed the function logs
+a warning and returns `0.0`, which is indistinguishable from "these molecules
+are genuinely dissimilar". A missing dependency currently looks like data.
+
+## 6. `build()` harmonised the gene list twice: FIXED
+
+**What it was**, marked `TODO` in place:
 
 ```python
 harmonized = self.id_mapper.harmonize_gene_list(all_genes)  # noqa: F841
 gene_map = dict(zip(all_genes, self.id_mapper.to_hgnc(all_genes)))
 ```
 
-The first result is discarded and the mapping is rebuilt from a second call.
-Both go through `to_hgnc`, so they cannot disagree about the mapping itself;
-`harmonize_gene_list` additionally deduplicates and drops unmapped
-identifiers, and that filtered list is what is thrown away.
+The first result was discarded and the mapping rebuilt from a second call.
+Both go through `to_hgnc`, so they could not disagree about the mapping
+itself. The question the `TODO` posed was which one was authoritative, and the
+answer is `to_hgnc`: `harmonize_gene_list` deduplicates and drops unmapped
+identifiers, which loses exactly the positional correspondence to the original
+names that the `zip` on the next line depends on. It was never the right tool
+there.
 
-**Effect.** Correctness is unaffected, cost is not: this doubles the most
-expensive step in the data build, for the reason in point 7. The `noqa` and
-the `TODO` are there so it fails review rather than lint.
+**What it is now.** The discarded call is gone, with a comment recording why
+rather than a `TODO` asking the question again.
 
-## 7. ID mapping issues one HTTP request per identifier
+## 7. ID mapping issued one HTTP request per identifier: FIXED
 
-Not a placeholder, but the reason the data build has not been run.
+Not a placeholder, but the reason the data build had never been run.
 
-`IDMapper.to_hgnc` loops over the identifiers and calls `self.mg.query(...)`
-once per gene. Identifiers already present in a loaded HGNC table take a local
-shortcut, so the cost falls on everything that is not already an HGNC symbol.
-`IDMapper.batch_convert` does exactly this job through `mygene`'s `querymany`,
-in one request, and nothing in the codebase calls it.
+**What it was.** `IDMapper.to_hgnc` looped over the identifiers and called
+`self.mg.query(...)` once per gene. `IDMapper.batch_convert` did exactly this
+job through `mygene`'s `querymany`, in one request, and nothing called it. On
+an interactome of the expected size, the non-symbol fraction of 15,000 to
+20,000 identifiers became that many sequential HTTP round trips, twice over
+because of point 6.
 
-**Effect.** On an interactome of the expected size, the unmapped fraction of
-15,000 to 20,000 identifiers becomes that many sequential HTTP round trips,
-twice over because of point 6. This is the wall a first real run hits.
+**What it is now.** One `querymany` per call, over the deduplicated set of
+identifiers not already known locally. Identifiers already in a loaded HGNC
+table still never leave the machine. Beyond the batching:
 
-**To finish.** Route `to_hgnc` through `batch_convert`, and persist the cache
-to `cache_dir`, which is created in `__init__` and then only used in memory.
+- **Results are cached to disk** under `cache_dir`, which was created in
+  `__init__` and then only ever used in memory. The second run of the data
+  build pays nothing for ID mapping. A corrupt cache is logged and ignored,
+  since it is a performance problem and not a correctness one.
+- **Misses are cached too**, so a genuinely unknown identifier is resolved
+  once rather than re-queried every run.
+- **A failed batch is not cached.** Recording a network error as "not found"
+  would make every retry return `None` without going back to the server, which
+  is the kind of silent-wrong this repository has had enough of.
+- **`from_type` is validated.** Every value other than `'auto'` used to be
+  accepted and then ignored, because the old query never passed a scope at
+  all; a typo silently searched everything.
+- **The local symbol shortcut respects `from_type`.** `'TP53'` is an HGNC
+  symbol, but under `from_type='entrez'` it is not an Entrez ID and must not
+  short-circuit to itself.
+- `harmonize_gene_list`'s unmapped count was `len(input) - len(output)`, so
+  deduplicating two copies of a gene that mapped perfectly well was reported
+  as a mapping failure. It now counts the failures themselves.
+
+`to_entrez` is batched the same way. `batch_convert` is kept as the raw
+`mygene`-scope escape hatch.
 
 ## 8. Extension scripts are stubs
 
@@ -254,12 +305,22 @@ is still read so they cannot quietly drift back out of use.
 
 ## What this adds up to
 
-Points 1 and 2 change the answer: a smaller network and a differently
-constituted disease module mean the scores this pipeline would produce are not
-the scores the paper describes, even though every formula between them is
-implemented and tested. Point 3 blocks evaluation outright. Point 7 blocks the
-first run.
+The two that blocked anything from happening are closed. Point 7 was the wall
+a first run hit, and point 3 was why its output could not have been evaluated
+even if it had finished.
+
+What remains changes the answer rather than preventing one. Points 1 and 2 mean
+a smaller network and a differently constituted disease module, so the scores
+this pipeline would produce are not the scores the paper describes, even though
+every formula between them is implemented and tested. Point 1 is mechanical
+work; point 2 is a genuine research decision about disease vocabularies.
 
 None of this affects the scoring layer, which is tested end to end over a
 synthetic network in `tests/`. The gap is entirely in the data path between a
 real download and a module.
+
+**Still true: nothing here has been run on real data.** The fixes above are
+covered by tests over synthetic inputs, and every one of them was verified by
+reverting it alone and confirming the matching test fails. That is not the same
+as a successful download, and the LINCS column detection in particular has
+never met a real metadata file.

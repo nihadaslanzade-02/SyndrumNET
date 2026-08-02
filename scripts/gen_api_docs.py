@@ -73,6 +73,13 @@ def first_docstring_line(node: ast.AST) -> str:
     return doc.strip().split("\n")[0] if doc else ""
 
 
+def is_property(node: ast.FunctionDef) -> bool:
+    """Whether a method is decorated with `@property`."""
+    return any(
+        isinstance(d, ast.Name) and d.id == "property" for d in node.decorator_list
+    )
+
+
 def collect(module_path: Path) -> list[str]:
     """Render the public surface of one module as markdown bullet lines."""
     tree = ast.parse(module_path.read_text(encoding="utf-8"))
@@ -88,13 +95,17 @@ def collect(module_path: Path) -> list[str]:
 
         if isinstance(node, ast.ClassDef):
             lines.append(f"- **`{node.name}`** - {summary}")
+            # A property is accessed without parentheses, so rendering it as
+            # `name()` would document a call that does not exist.
             methods = [
-                m.name
+                (m.name, is_property(m))
                 for m in node.body
                 if isinstance(m, ast.FunctionDef) and not m.name.startswith("_")
             ]
             if methods:
-                rendered = ", ".join(f"`{m}()`" for m in methods)
+                rendered = ", ".join(
+                    f"`{name}`" if prop else f"`{name}()`" for name, prop in methods
+                )
                 lines.append(f"  - methods: {rendered}")
         else:
             args = ", ".join(a.arg for a in node.args.args)

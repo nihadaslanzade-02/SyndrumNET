@@ -98,15 +98,19 @@ where `PQAB = (P_QA + P_QB)/2` is the average proximity z-score and
 ### Cell line handling (L1000)
 
 A compound is profiled in several cell lines, and the method does not specify
-how to reconcile them.
+how to reconcile them. Here:
 
-- The drug module is the **top 5% of genes by absolute fold change**.
-- **Nothing reconciles the cell lines.** An earlier version of this note
-  claimed a per-gene median across lines; no such aggregation exists in the
-  data path. `parse_lincs` takes each signature column on its own, so each
-  cell line yields its own module under its own signature ID. A median across
-  lines is the intended behaviour, and it is the same fix as joining the
-  LINCS metadata. See [`PLACEHOLDERS.md`](PLACEHOLDERS.md) sections 3 and 4.
+- Signatures are joined to their compound through the LINCS metadata, then
+  fold changes are aggregated per gene by **median across all cell lines**.
+  Median rather than mean because a single anomalous line should not be able
+  to carry a gene into the module on its own; `mean` is selectable.
+- The drug module is the **top 5% of genes by absolute fold change** of that
+  aggregated profile.
+
+The metadata schema is not stable across LINCS and L1000CDS2 releases, so the
+join columns are detected from a candidate list rather than assumed, and a
+file matching none of them fails loudly. This has not yet been run against a
+real download. See [`PLACEHOLDERS.md`](PLACEHOLDERS.md) sections 3 and 4.
 
 ### Null model
 
@@ -133,8 +137,6 @@ disconnection heavily.
    have no parser at all.
 3. **Disease modules** - susceptibility genes are not loaded, so a disease
    module is its expression signature alone.
-4. **Drug modules** - keyed by LINCS signature ID rather than by compound,
-   with no aggregation across cell lines.
 
 All deviations are also marked in the code comments at the point where they
 apply, and [`PLACEHOLDERS.md`](PLACEHOLDERS.md) traces each one through to its

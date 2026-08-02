@@ -12,11 +12,48 @@ the network is built from three sources rather than seven. See
 
 import logging
 from pathlib import Path
-from typing import Dict, List
+from typing import Dict, List, Sequence
 
 import pandas as pd
 
 logger = logging.getLogger(__name__)
+
+#: Column names that have carried the signature identifier across LINCS and
+#: L1000CDS2 releases, most specific first. The metadata schema is not stable
+#: between releases, so the column is detected rather than assumed.
+SIGNATURE_ID_COLUMNS = ('sig_id', 'signature_id', 'distil_id', 'pert_sig_id', 'id')
+
+#: Column names that have carried the compound's human-readable name. This is
+#: what has to reach the drug module keys: `eval/benchmarks.py` matches
+#: predictions against synergy resources on plain compound names, so a
+#: `pert_id` (BRD-Kxxxxxxx) joins to nothing and is the last resort.
+COMPOUND_NAME_COLUMNS = (
+    'pert_iname', 'pert_desc', 'pert_name', 'drug_name', 'compound', 'pert_id',
+)
+
+
+def _detect_column(
+    df: pd.DataFrame,
+    candidates: Sequence[str],
+    description: str,
+    source: Path,
+) -> str:
+    """
+    Find the first candidate column present, or fail naming what was there.
+
+    Returns the column name. Raises `KeyError` listing both the candidates
+    tried and the columns actually found, because a wrong guess here would
+    otherwise surface much later as an empty join.
+    """
+    for candidate in candidates:
+        if candidate in df.columns:
+            return candidate
+
+    raise KeyError(
+        f"Could not find the {description} column in {source}. "
+        f"Tried {list(candidates)}; the file has {list(df.columns)}. "
+        f"Pass the right name explicitly if this release uses another."
+    )
 
 
 def parse_huri(filepath: Path) -> pd.DataFrame:
@@ -211,72 +248,139 @@ def parse_lincs(
     sig_filepath: Path,
     meta_filepath: Path,
     top_pct: float = 0.05,
+    aggregate: str = 'median',
 ) -> Dict[str, Dict[str, List[str]]]:
     """
     Parse LINCS L1000 drug signatures.
-    
-    Defines drug modules as top/bottom 5% genes by fold-change.
-    
+
+    Defines drug modules as top/bottom 5% genes by fold-change, from a profile
+    aggregated per compound across every cell line it was assayed in.
+
     Parameters
     ----------
     sig_filepath : Path
-        Path to LINCS signatures file.
+        Path to LINCS signatures file. Genes on the rows, one column per
+        signature.
     meta_filepath : Path
-        Path to LINCS metadata file.
+        Path to LINCS metadata file, carrying the signature-to-compound
+        mapping.
     top_pct : float
         Percentage of genes to include in up/down sets (default: 0.05 = 5%).
-        
+    aggregate : str
+        How to combine a compound's signatures per gene, 'median' or 'mean'.
+        Median by default, so one anomalous cell line cannot carry a gene into
+        the module on its own.
+
     Returns
     -------
     dict
-        {drug_name: {'up': [genes], 'down': [genes]}}
+        {compound_name: {'up': [genes], 'down': [genes]}}
 
-        Keyed by **signature identifier**, not by compound. See Notes.
+    Raises
+    ------
+    KeyError
+        If the signature-ID or compound-name column cannot be found in the
+        metadata. Both are detected from a list of names used across
+        releases, and the error reports what the file actually contains.
+    ValueError
+        If `aggregate` is unknown, if `top_pct` is outside (0, 1], or if no
+        signature column matches any metadata row, which means the detected
+        ID column is the wrong one.
 
     Notes
     -----
-    Two gaps, both from the metadata table never being joined:
+    A compound is assayed in several cell lines, and each assay is its own
+    column. Without the metadata join the keys here are raw signature
+    identifiers, which had two consequences: one compound became several
+    distinct "drugs" whose pairs are guaranteed to score as redundant, and
+    the output could not be evaluated at all, because
+    `eval/benchmarks.py` matches predictions against synergy resources keyed
+    by plain compound name.
 
-    1. The keys are the signature matrix's column names. A compound profiled
-       in several cell lines therefore appears as several distinct "drugs".
-       Beyond the wasted compute on same-compound pairs, this blocks
-       evaluation outright: `eval/` matches predictions against synergy
-       resources keyed by compound name, and signature IDs join to nothing.
-    2. No aggregation across cell lines happens anywhere. Each column is
-       taken on its own, so a drug module is one cell line's top 5% rather
-       than a consensus profile.
+    The metadata schema is not stable across LINCS and L1000CDS2 releases, so
+    the two columns are detected from `SIGNATURE_ID_COLUMNS` and
+    `COMPOUND_NAME_COLUMNS` rather than assumed. `pert_id` is the last
+    candidate for the name, since a BRD identifier joins to no synergy
+    resource; if that is what gets picked, expect evaluation to find nothing.
 
-    Both are fixed by the same change: join `meta` on the signature ID, group
-    by compound, aggregate per gene, then take the percentiles.
-    `docs/PLACEHOLDERS.md` sections 3 and 4.
+    Signature columns with no metadata row are dropped with a warning. Keeping
+    them under their raw ID would silently reintroduce exactly the problem
+    this join exists to remove.
     """
+    if aggregate not in ('median', 'mean'):
+        raise ValueError(
+            f"Unknown aggregate: {aggregate!r}. Expected 'median' or 'mean'."
+        )
+
+    if not 0 < top_pct <= 1:
+        raise ValueError(f"top_pct must be in (0, 1], got {top_pct}.")
+
     logger.info(f"Parsing LINCS L1000 from {sig_filepath}")
 
-    # Read signatures
+    # Read signatures: genes on the rows, one column per signature
     df = pd.read_csv(sig_filepath, sep='\t', index_col=0)
 
-    # Read metadata
-    # TODO: the metadata table is loaded but never joined. It carries the
-    # signature-to-compound mapping, so the drug keys below are still raw
-    # signature identifiers rather than compound names.
-    meta = pd.read_csv(meta_filepath, sep='\t')  # noqa: F841
+    # Read metadata and resolve each signature column to its compound
+    meta = pd.read_csv(meta_filepath, sep='\t')
+
+    sig_column = _detect_column(
+        meta, SIGNATURE_ID_COLUMNS, "signature identifier", meta_filepath
+    )
+    name_column = _detect_column(
+        meta, COMPOUND_NAME_COLUMNS, "compound name", meta_filepath
+    )
+
+    logger.info(
+        f"Joining on {sig_column!r}, taking compound names from {name_column!r}"
+    )
+
+    # Last row wins for a repeated signature ID; they should be unique, and a
+    # duplicated index would make the reindex below raise.
+    compound_of = (
+        meta.drop_duplicates(subset=sig_column, keep='last')
+        .set_index(sig_column)[name_column]
+        .reindex(df.columns)
+    )
+
+    unmapped = compound_of.isna()
+
+    if unmapped.all():
+        raise ValueError(
+            f"No signature column in {sig_filepath} matched a {sig_column!r} "
+            f"value in {meta_filepath}. The detected join column is probably "
+            f"the wrong one."
+        )
+
+    if unmapped.any():
+        logger.warning(
+            f"Dropping {int(unmapped.sum())}/{len(compound_of)} signatures "
+            f"with no metadata row"
+        )
+        df = df.loc[:, ~unmapped.to_numpy()]
+        compound_of = compound_of[~unmapped]
+
+    # Aggregate each compound's signatures per gene. Transposed because
+    # grouping along the column axis was removed in pandas 3.
+    profiles = df.T.groupby(compound_of.to_numpy()).agg(aggregate).T
+
+    logger.info(
+        f"Aggregated {df.shape[1]} signatures into {profiles.shape[1]} "
+        f"compound profiles by {aggregate}"
+    )
 
     signatures = {}
-    
-    # For each drug (column in signatures)
-    for drug in df.columns:
-        fold_changes = df[drug].dropna()
-        
-        # Top/bottom percentiles
-        n_top = int(len(fold_changes) * top_pct)
-        
-        top_up = fold_changes.nlargest(n_top)
-        top_down = fold_changes.nsmallest(n_top)
-        
+
+    for drug in profiles.columns:
+        fold_changes = profiles[drug].dropna()
+
+        # Top/bottom percentiles. At least one gene each way, so a small
+        # matrix yields a usable module instead of an empty one.
+        n_top = max(1, int(len(fold_changes) * top_pct))
+
         signatures[drug] = {
-            'up': top_up.index.tolist(),
-            'down': top_down.index.tolist(),
+            'up': fold_changes.nlargest(n_top).index.tolist(),
+            'down': fold_changes.nsmallest(n_top).index.tolist(),
         }
-    
-    logger.info(f"Parsed LINCS signatures for {len(signatures)} drugs")
+
+    logger.info(f"Parsed LINCS signatures for {len(signatures)} compounds")
     return signatures

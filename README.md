@@ -9,7 +9,7 @@ A Python implementation of **SyndrumNET**, a network-based trans-omics method th
 
 The pipeline integrates molecular-interaction resources into one network, builds gene modules for diseases and drugs from expression signatures, propagates signal across the network with PRINCE, and scores every drug pair on three independent axes: **topology**, **proximity**, and **transcriptional reversal**.
 
-The scoring layer is complete and tested. The data layer is not: three of the seven configured interaction sources have parsers, and disease modules are built from expression signatures alone. [`docs/PLACEHOLDERS.md`](docs/PLACEHOLDERS.md) is a stage-by-stage account of what is missing and what each omission changes about the results.
+The scoring layer is complete and tested. The data layer is partly so: three of the seven configured interaction sources have parsers, and disease modules are built from expression signatures alone. [`docs/PLACEHOLDERS.md`](docs/PLACEHOLDERS.md) is a stage-by-stage account of what is missing, what has been closed, and what each remaining omission changes about the results.
 
 ---
 
@@ -65,7 +65,7 @@ The null is built by **degree-preserving randomisation**. Genes are binned into 
 
 ### C: transcriptional reversal
 
-`C(Q,A,B) = (C_QA + C_QB)/2`, comparing each drug's L1000 expression signature against the disease's CREEDS signature. Drug modules are the top 5% of genes by absolute fold change. The method calls for aggregating a compound's profiles across cell lines first; `parse_lincs` does not, and each cell line currently yields its own module ([`docs/PLACEHOLDERS.md`](docs/PLACEHOLDERS.md) section 4).
+`C(Q,A,B) = (C_QA + C_QB)/2`, comparing each drug's L1000 expression signature against the disease's CREEDS signature. Drug modules are the top 5% of genes by absolute fold change, taken from a profile aggregated per compound across every cell line it was assayed in. Median by default, so one anomalous line cannot carry a gene into the module on its own.
 
 ### PRINCE propagation
 
@@ -86,13 +86,13 @@ The library layer is tested and green. The **full pipeline has not yet been run 
 | Layer | State |
 |---|---|
 | Package import | Clean across Python 3.10, 3.11 and 3.12 |
-| Test suite | **103 passing**: unit coverage of every metric and scoring module, plus end-to-end runs over a synthetic network |
+| Test suite | **151 passing**: unit coverage of every metric, parser and scoring module, plus end-to-end runs over a synthetic network |
 | Lint | `ruff` clean, enforced in CI |
 | Scoring pipeline | `SynergyPredictor.predict_all()` runs end to end and is covered by integration tests |
 | Interaction sources | 3 of the 7 in `configs/default.yaml` have a parser. The other 4 are dropped without a warning |
 | Disease modules | Expression signatures only; the susceptibility-gene half is a placeholder that returns an empty set |
-| Drug modules | Keyed by LINCS signature ID rather than compound, with no aggregation across cell lines. This blocks evaluation |
-| ID harmonisation | One HTTP request per identifier, twice over. `batch_convert()` exists and is unused |
+| Drug modules | Keyed by compound, median-aggregated across cell lines. The metadata column names are detected, never yet against a real download |
+| ID harmonisation | One batched `querymany` per call, cached to disk between runs |
 | Run on real data | Not yet performed. No committed predictions, figures or evaluation tables |
 
 Each of those data-layer rows is worked through in
@@ -205,7 +205,8 @@ src/syndrumnet/
 
 scripts/             build_all_data · run_pipeline · evaluate · make_figures · gen_api_docs
 configs/             default.yaml + one YAML per disease
-tests/               config · distances · null_models · propagation · scoring · similarity_layers · plots · integration
+tests/               config · id_mapping · parsers · distances · null_models · propagation
+                     scoring · similarity_layers · plots · integration
 ```
 
 Design decisions worth noting: `src/` layout so tests run against the installed package rather than the working directory; every public function carries a full NumPy-style docstring with parameters, returns and references; a single YAML config drives every stage with CLI overrides layered on top; seeding is centralised in `utils/seeds.py` rather than scattered across call sites; and scoring is split into one module per component so the three axes stay independently testable.
@@ -225,7 +226,7 @@ pip install -e ".[dev]"
 Requires Python 3.10+, roughly 16 GB RAM and ~50 GB of disk for the full data build.
 
 ```bash
-pytest tests/ -v      # 103 tests, no data or network access needed
+pytest tests/ -v      # 151 tests, no data or network access needed
 ruff check .          # same lint gate CI runs
 ```
 
@@ -319,12 +320,10 @@ No data is committed to this repository; `data/` is populated by `build_all_data
 
 Ordered by what blocks what, rather than by size. Full detail in [`docs/PLACEHOLDERS.md`](docs/PLACEHOLDERS.md).
 
-1. **Batch the ID mapping.** `IDMapper.to_hgnc()` issues one HTTP request per identifier, and `network_builder.build()` runs it twice over the full gene list because it discards the result of the first call. At interactome scale that is tens of thousands of sequential round trips, which is the wall a first real run hits. `batch_convert()` already does the job in one request and nothing calls it.
-2. **Join the LINCS metadata.** Until drug modules are keyed by compound instead of signature ID, `eval/` cannot match predictions to any known-synergy resource, so AUC-ROC and AUC-PR cannot be computed at all. The same change adds the missing aggregation across cell lines.
-3. **Run the pipeline once on one disease**, with a reduced `n_randomizations`, to get a first result on real data and a committed prediction table.
-4. **Load susceptibility genes.** The largest deviation from the method: a disease module is currently its expression signature alone. The parsers are easy, the disease-term mapping between CREEDS, ClinVar, DisGeNET and OMIM is not.
-5. **Fill in the four missing interaction parsers** for KEGG RPair, SignaLink, InnateDB and Instruct, so the network is the seven-source integration the config already declares.
-6. **Validate against the reference results**, disease by disease.
+1. **Run the pipeline once on one disease**, with a reduced `n_randomizations`, to get a first result on real data and a committed prediction table. The two things that made this impossible are done: ID mapping is batched and cached, and drug modules are keyed by compound so the output can be evaluated. What is untested is the download itself, and in particular whether the LINCS metadata's real column names are among the ones `parse_lincs` knows to look for.
+2. **Load susceptibility genes.** The largest remaining deviation from the method: a disease module is currently its expression signature alone. The parsers are easy, the disease-term mapping between CREEDS, ClinVar, DisGeNET and OMIM is not.
+3. **Fill in the four missing interaction parsers** for KEGG RPair, SignaLink, InnateDB and Instruct, so the network is the seven-source integration the config already declares.
+4. **Validate against the reference results**, disease by disease.
 
 ---
 

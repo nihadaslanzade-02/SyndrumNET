@@ -30,7 +30,7 @@ python scripts/gen_api_docs.py > docs/API.md
 ### `syndrumnet.io.id_mapping`
 
 - **`IDMapper`** - Gene/protein ID mapping service.
-  - methods: `to_hgnc()`, `to_entrez()`, `harmonize_gene_list()`, `batch_convert()`
+  - methods: `cache_file`, `load_cache()`, `save_cache()`, `to_hgnc()`, `to_entrez()`, `harmonize_gene_list()`, `batch_convert()`
 
 ### `syndrumnet.io.parsers`
 
@@ -39,7 +39,7 @@ python scripts/gen_api_docs.py > docs/API.md
 - `parse_phosphositeplus(filepath)` - Parse PhosphoSitePlus kinase-substrate data.
 - `parse_kegg_rpair(filepath)` - Parse KEGG RPair reaction data.
 - `parse_creeds(filepath)` - Parse CREEDS disease signatures.
-- `parse_lincs(sig_filepath, meta_filepath, top_pct)` - Parse LINCS L1000 drug signatures.
+- `parse_lincs(sig_filepath, meta_filepath, top_pct, aggregate)` - Parse LINCS L1000 drug signatures.
 
 ## `syndrumnet.data`
 
@@ -140,12 +140,12 @@ python scripts/gen_api_docs.py > docs/API.md
 
 ### `syndrumnet.viz.plots`
 
-- `plot_degree_distribution(G, output_path, log_scale)` - Plot network degree distribution.
-- `plot_roc_curve(fpr, tpr, auc, output_path, title)` - Plot ROC curve.
-- `plot_pr_curve(precision, recall, auc_pr, output_path, title)` - Plot precision-recall curve.
-- `plot_score_distributions(predictions, output_path)` - Plot distributions of TQAB, PQAB, CQAB scores.
-- `plot_top_predictions(predictions, k, output_path)` - Plot top-k predictions with stacked score components.
-- `plot_auc_comparison(results, output_path)` - Plot AUC comparison across diseases.
+- `plot_degree_distribution(G, output_path, log_scale, dpi)` - Plot network degree distribution.
+- `plot_roc_curve(fpr, tpr, auc, output_path, title, dpi)` - Plot ROC curve.
+- `plot_pr_curve(precision, recall, auc_pr, output_path, title, dpi)` - Plot precision-recall curve.
+- `plot_score_distributions(predictions, output_path, dpi)` - Plot distributions of TQAB, PQAB, CQAB scores.
+- `plot_top_predictions(predictions, k, output_path, dpi)` - Plot top-k predictions as a signed decomposition of the total score.
+- `plot_auc_comparison(results, output_path, dpi)` - Plot AUC comparison across diseases.
 
 ## `syndrumnet.utils`
 
@@ -161,7 +161,7 @@ python scripts/gen_api_docs.py > docs/API.md
 
 - `setup_logger(name, log_dir, level, console)` - Setup structured logger with file and console handlers.
 - **`LoggerMixin`** - Mixin to add logger attribute to classes.
-  - methods: `logger()`
+  - methods: `logger`
 
 ### `syndrumnet.utils.seeds`
 

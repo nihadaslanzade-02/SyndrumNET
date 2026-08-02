@@ -136,11 +136,12 @@ class NetworkBuilder:
         all_genes = list(all_genes)
         
         logger.info(f"Harmonizing {len(all_genes)} unique genes")
-        # TODO: harmonize_gene_list() is called but its result is discarded, and
-        # the mapping below is built from a separate to_hgnc() call instead.
-        # Resolve which of the two is authoritative before running the pipeline.
-        harmonized = self.id_mapper.harmonize_gene_list(all_genes)  # noqa: F841
-        
+
+        # to_hgnc() is the authoritative call here, and the only one needed.
+        # harmonize_gene_list() used to be called first and its result thrown
+        # away; it deduplicates and drops unmapped identifiers, which loses
+        # exactly the correspondence to the original names that the edge
+        # rewrite below depends on.
         gene_map = dict(zip(all_genes, self.id_mapper.to_hgnc(all_genes)))
         
         # Map to harmonized IDs

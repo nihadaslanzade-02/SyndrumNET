@@ -57,7 +57,7 @@ python scripts/gen_api_docs.py > docs/API.md
 
 ### `syndrumnet.metrics.distances`
 
-- `shortest_path_distance(G, source_set, target_set, infinity_value)` - Compute average shortest path distance from source set to target set.
+- `shortest_path_distance(G, source_set, target_set, infinity_value, exclude_self)` - Compute average shortest path distance from source set to target set.
 - `module_proximity(G, module_a, module_b)` - Compute bidirectional proximity between two modules.
 - `separation_score(G, module_a, module_b)` - Compute network separation s_AB between two modules.
 - `compute_all_pairwise_distances(G, gene_set)` - Compute all pairwise shortest path distances within a gene set.
@@ -100,7 +100,9 @@ python scripts/gen_api_docs.py > docs/API.md
 
 ### `syndrumnet.scoring.pqab`
 
+- `module_seed(base_seed, module)` - Derive a deterministic null-model seed for one gene module.
 - `compute_pqab(G, disease_module, drug_a_module, drug_b_module, n_randomizations, seed)` - Compute proximity score PQAB.
+- `proximity_zscore(G, disease_module, drug_module, n_randomizations, seed)` - Compute the z-scored disease-drug proximity P_QA for a single drug.
 - `compute_pqab_batch(G, disease_module, drug_modules, drug_pairs, n_randomizations, seed)` - Compute PQAB for multiple drug pairs.
 
 ### `syndrumnet.scoring.predictor`

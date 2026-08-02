@@ -79,17 +79,55 @@ The library layer is tested and green. The **full pipeline has not yet been run 
 | Layer | State |
 |---|---|
 | Package import | Clean across Python 3.10, 3.11 and 3.12 |
-| Test suite | **9 passing**: distances, null models, propagation, scoring |
+| Test suite | **25 passing**: 9 unit, 16 end-to-end over a synthetic network |
 | Lint | `ruff` clean, enforced in CI |
-| Distances, separation, PRINCE, TQAB, CQAB, null models | Implemented and covered by tests |
+| Scoring pipeline | `SynergyPredictor.predict_all()` runs end to end and is covered by integration tests |
 | Data acquisition | Downloaders and parsers written; KEGG RPair and several disease-gene sources are explicit placeholders |
 | ID harmonisation | Two competing calls in `network_builder.build()`, marked `TODO` in place |
 | LINCS parsing | Metadata table is loaded but never joined, so drug keys are still raw signature IDs; marked `TODO` in place |
-| End-to-end run | Not yet performed. No committed predictions, figures or evaluation tables |
+| Run on real data | Not yet performed. No committed predictions, figures or evaluation tables |
 
-Earlier revisions of this repository could not be imported at all: seven `typing` names and `pandas` were used without being imported, and because Python evaluates annotations at definition time, five of the eight subpackages raised `NameError` on import. That took every entry-point script down with them and left `pytest` collecting zero tests. Fixed in `650f52b`, along with the defect the test suite had been written to catch but never got to run: the degree-preserving null model called `_get_bin` with the wrong arity, and separately handed it bin contents where it expected numeric bin edges.
+### What the tests found
 
-CI now guards against exactly that failure mode. Every module is imported in a dedicated job, so a missing import fails the build even when no test happens to exercise the affected function.
+The integration suite was written to exercise the wiring rather than the
+components, and it earned its keep immediately. Each fix below is pinned by a
+test that fails when the fix is reverted.
+
+**Proximity depended on pair position.** `P_QA` is defined as a property of the
+disease and one drug, but `compute_pqab` seeded the null model with `seed` for
+the first drug and `seed + 1` for the second. A drug therefore scored
+differently depending on which side of the pair it landed on, and since pairs
+are enumerated in list order, that noise tracked each drug's position in the
+input. Null-model seeds are now derived from the module's own contents, so a
+module always draws the same null wherever it appears.
+
+**Redundant pairs could never be detected.** `separation_score` computes
+`s_AB = <d_AB> - (<d_AA> + <d_BB>)/2`, but the intra-module terms let every
+gene match itself at distance 0, so `<d_AA>` and `<d_BB>` were identically 0.
+That collapsed `s_AB` to `<d_AB>`, which is non-negative for any two distinct
+modules, so the `s_AB <= 0` branch was unreachable: on a random sample of 200
+module pairs, 200 classified as complementary and none as redundant. The
+intra-module terms now measure the distance to the nearest *other* gene, and
+the same sample splits 153 redundant to 47 complementary.
+
+**Per-drug scores were recomputed once per pair.** Both `P_QA` and `C_QA`
+depend on a single drug, yet the batch functions recomputed them for every pair
+that drug appeared in. At the 1,488 drugs the default config declares, that is
+2.2 million null-model sweeps where 1,488 suffice. Both batch paths now compute
+one value per drug and reuse it.
+
+Earlier still, the package could not be imported at all: seven `typing` names
+and `pandas` were used without being imported, and because Python evaluates
+annotations at definition time, five of the eight subpackages raised
+`NameError` on import. That took every entry-point script down with them and
+left `pytest` collecting zero tests. Fixed in `650f52b`, along with the defect
+the existing test suite had been written to catch but never got to run: the
+degree-preserving null model called `_get_bin` with the wrong arity, and
+separately handed it bin contents where it expected numeric bin edges.
+
+CI guards that failure mode directly. Every module is imported in a dedicated
+job, so a missing import fails the build even when no test happens to exercise
+the affected function.
 
 ---
 
@@ -129,9 +167,15 @@ pip install -e ".[dev]"
 Requires Python 3.10+, roughly 16 GB RAM and ~50 GB of disk for the full data build.
 
 ```bash
-pytest tests/ -v      # 9 tests, no data or network access needed
+pytest tests/ -v      # 25 tests, no data or network access needed
 ruff check .          # same lint gate CI runs
 ```
+
+The integration tests run the whole predictor over a small synthetic network
+built in [`tests/conftest.py`](tests/conftest.py): four complete communities
+chained together, with drugs placed so that "adjacent to the disease",
+"two communities away" and "overlapping with another drug" are true by
+construction rather than by whatever the code happened to output.
 
 The pipeline itself, in order:
 
@@ -215,8 +259,8 @@ No data is committed to this repository; `data/` is populated by `build_all_data
 
 1. **Resolve the two `TODO`s in the data layer.** `network_builder.build()` calls `harmonize_gene_list()` and discards the result, building its mapping from a separate `to_hgnc()` call instead; `parse_lincs()` loads the metadata table but never joins it, leaving raw signature IDs as drug keys. Both are marked in place.
 2. **Fill in the placeholder parsers** for KEGG RPair and the disease-gene sources, so the network is the full seven-source integration the method specifies.
-3. **Run the pipeline once on one disease**, with a reduced `n_randomizations`, to get a first end-to-end result and a committed prediction table.
-4. **Add integration tests** on a small synthetic network that exercise `SynergyPredictor.predict_all()` end to end, not just the components.
+3. **Run the pipeline once on one disease**, with a reduced `n_randomizations`, to get a first result on real data and a committed prediction table.
+4. **Calibrate the TQAB thresholds.** The distance cutoff of 3 hops and the divisors of 10 and 5 in the class scores are unjustified constants, and they set the relative weight of the topological axis against the other two. Nothing currently checks whether they are sensible on a real interactome.
 5. **Validate against the reference results** in the source thesis, disease by disease.
 
 ---

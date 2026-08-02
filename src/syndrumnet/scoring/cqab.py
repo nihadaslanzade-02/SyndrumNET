@@ -91,21 +91,33 @@ def compute_cqab_batch(
     -------
     dict
         {(drug_a, drug_b): (cqab, cqa, cqb)}
+
+    Notes
+    -----
+    Like P_QA, C_QA depends only on the disease and one drug, so it is computed
+    once per drug and reused across every pair that drug appears in.
     """
-    results = {}
-    
-    for drug_a, drug_b in drug_pairs:
-        if drug_a not in drug_signatures or drug_b not in drug_signatures:
-            continue
-        
-        cqab, cqa, cqb = compute_cqab(
+    from syndrumnet.metrics.transcription import transcriptional_similarity
+
+    needed = {drug for pair in drug_pairs for drug in pair if drug in drug_signatures}
+
+    similarities: Dict[str, float] = {
+        drug: transcriptional_similarity(
             disease_signature,
-            drug_signatures[drug_a]['up'],
-            drug_signatures[drug_a]['down'],
-            drug_signatures[drug_b]['up'],
-            drug_signatures[drug_b]['down'],
+            drug_signatures[drug]['up'],
+            drug_signatures[drug]['down'],
+            inverse_correlation=True,
         )
-        
-        results[(drug_a, drug_b)] = (cqab, cqa, cqb)
-    
+        for drug in sorted(needed)
+    }
+
+    results = {}
+
+    for drug_a, drug_b in drug_pairs:
+        if drug_a not in similarities or drug_b not in similarities:
+            continue
+
+        c_qa, c_qb = similarities[drug_a], similarities[drug_b]
+        results[(drug_a, drug_b)] = ((c_qa + c_qb) / 2, c_qa, c_qb)
+
     return results

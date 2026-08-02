@@ -7,7 +7,7 @@ significance testing of proximity scores.
 
 import logging
 import random
-from typing import Dict, List, Set
+from typing import Dict, List, Optional, Set, Tuple
 
 import networkx as nx
 import numpy as np
@@ -63,10 +63,12 @@ def degree_preserving_randomization(
     
     # Build degree bins
     degrees = dict(G.degree())
-    degree_bins = _build_degree_bins(degrees, n_bins=20)
-    
-    # Get degree bin for each gene in module
-    module_bins = [_get_bin(degrees[gene], degree_bins) for gene in module]
+    degree_bins, bin_edges = _build_degree_bins(degrees, n_bins=20)
+
+    # Get degree bin for each gene in module. _get_bin is deterministic and is
+    # the same function that populated degree_bins, so every index produced here
+    # is guaranteed to point at a non-empty bin.
+    module_bins = [_get_bin(degrees[gene], bin_edges) for gene in module]
     
     # Generate random modules
     random_modules = []
@@ -93,35 +95,45 @@ def degree_preserving_randomization(
 def _build_degree_bins(
     degrees: Dict[str, int],
     n_bins: int = 20,
-) -> List[List[str]]:
+) -> Tuple[List[List[str]], np.ndarray]:
     """
     Build degree bins for stratified sampling.
-    
+
     Parameters
     ----------
     degrees : dict
         {gene: degree}
     n_bins : int
         Number of bins.
-        
+
     Returns
     -------
-    list of list
-        Bins containing genes with similar degrees.
+    tuple
+        (bins, bin_edges) where bins is a list of gene lists, one per degree
+        stratum, and bin_edges are the numeric percentile boundaries used to
+        assign a degree to a bin.
+
+    Notes
+    -----
+    The edges are returned alongside the bins because callers need them to map
+    a new degree onto the same stratification via _get_bin. Real networks have
+    heavily tied degree distributions, so percentile edges are often duplicated
+    and some bins come out empty; that is harmless, because _get_bin is
+    deterministic and never assigns a gene to a bin it did not itself fill.
     """
     # Get degree percentiles
     degree_values = sorted(degrees.values())
     percentiles = np.linspace(0, 100, n_bins + 1)
     bin_edges = np.percentile(degree_values, percentiles)
-    
+
     # Assign genes to bins
-    bins = [[] for _ in range(n_bins)]
-    
+    bins: List[List[str]] = [[] for _ in range(n_bins)]
+
     for gene, degree in degrees.items():
-        bin_idx = _get_bin(degree, bins, bin_edges)
+        bin_idx = _get_bin(degree, bin_edges)
         bins[bin_idx].append(gene)
-    
-    return bins
+
+    return bins, bin_edges
 
 
 def _get_bin(degree: int, bin_edges: np.ndarray) -> int:

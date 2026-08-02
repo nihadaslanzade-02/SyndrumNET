@@ -6,7 +6,7 @@ to disease module based on network topology.
 """
 
 import logging
-from typing import Dict, Set, Tuple
+from typing import Dict, List, Set, Tuple
 
 import networkx as nx
 import numpy as np

@@ -6,7 +6,7 @@ Loads gold-standard synergy data from resources like DrugCombDB.
 
 import logging
 from pathlib import Path
-from typing import Dict, List, Set, Tuple
+from typing import Dict, List, Optional, Set, Tuple
 
 import pandas as pd
 

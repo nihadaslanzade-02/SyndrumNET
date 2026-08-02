@@ -7,7 +7,7 @@ and applied in Iida et al. (2024).
 """
 
 import logging
-from typing import Dict, Optional, Set, Tuple
+from typing import Dict, List, Optional, Set, Tuple
 
 import networkx as nx
 import numpy as np

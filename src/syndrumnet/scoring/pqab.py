@@ -5,7 +5,7 @@ Aggregates disease-drug network proximities for drug pair.
 """
 
 import logging
-from typing import Dict, Set, Tuple
+from typing import Dict, List, Set, Tuple
 
 import networkx as nx
 

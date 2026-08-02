@@ -5,7 +5,7 @@ Measures correlation between disease and drug expression signatures.
 """
 
 import logging
-from typing import Dict, Set, Tuple
+from typing import Dict, List, Set, Tuple
 
 logger = logging.getLogger(__name__)
 

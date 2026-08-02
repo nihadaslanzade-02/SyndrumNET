@@ -2,6 +2,12 @@
 Parsers for all data sources.
 
 Each parser converts raw data files to standardized pandas DataFrames.
+
+Three of the seven interaction sources in `configs/default.yaml` have a parser
+here: HuRI, CORUM and PhosphoSitePlus. KEGG RPair is a stub that returns an
+empty frame, and SignaLink, InnateDB and Instruct have no parser at all, so
+the network is built from three sources rather than seven. See
+`docs/PLACEHOLDERS.md` section 1.
 """
 
 import logging
@@ -134,9 +140,18 @@ def parse_phosphositeplus(filepath: Path) -> pd.DataFrame:
 def parse_kegg_rpair(filepath: Path) -> pd.DataFrame:
     """
     Parse KEGG RPair reaction data.
-    
-    Note: This is a placeholder. Actual implementation requires KEGG API calls.
-    
+
+    Placeholder: returns an empty frame with the right schema, so a caller
+    that concatenates it gets fewer edges rather than an error.
+
+    Finishing it needs two things. The REST endpoint is already listed in
+    `DataDownloader.URLS` but no `download_*` method calls it, and reactant
+    pairs are compound-to-compound, so they only become interactome edges via
+    the enzymes that catalyse the reaction. That mapping step is the work.
+
+    Note that `NetworkBuilder.add_source` does not register this parser, so
+    it is currently unreachable from the pipeline even with a file in hand.
+
     Parameters
     ----------
     filepath : Path
@@ -215,18 +230,37 @@ def parse_lincs(
     -------
     dict
         {drug_name: {'up': [genes], 'down': [genes]}}
+
+        Keyed by **signature identifier**, not by compound. See Notes.
+
+    Notes
+    -----
+    Two gaps, both from the metadata table never being joined:
+
+    1. The keys are the signature matrix's column names. A compound profiled
+       in several cell lines therefore appears as several distinct "drugs".
+       Beyond the wasted compute on same-compound pairs, this blocks
+       evaluation outright: `eval/` matches predictions against synergy
+       resources keyed by compound name, and signature IDs join to nothing.
+    2. No aggregation across cell lines happens anywhere. Each column is
+       taken on its own, so a drug module is one cell line's top 5% rather
+       than a consensus profile.
+
+    Both are fixed by the same change: join `meta` on the signature ID, group
+    by compound, aggregate per gene, then take the percentiles.
+    `docs/PLACEHOLDERS.md` sections 3 and 4.
     """
     logger.info(f"Parsing LINCS L1000 from {sig_filepath}")
-    
+
     # Read signatures
     df = pd.read_csv(sig_filepath, sep='\t', index_col=0)
-    
+
     # Read metadata
     # TODO: the metadata table is loaded but never joined. It carries the
     # signature-to-compound mapping, so the drug keys below are still raw
     # signature identifiers rather than compound names.
     meta = pd.read_csv(meta_filepath, sep='\t')  # noqa: F841
-    
+
     signatures = {}
     
     # For each drug (column in signatures)

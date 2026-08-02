@@ -98,11 +98,15 @@ where `PQAB = (P_QA + P_QB)/2` is the average proximity z-score and
 ### Cell line handling (L1000)
 
 A compound is profiled in several cell lines, and the method does not specify
-how to reconcile them. Here:
+how to reconcile them.
 
-- Fold changes are aggregated per gene by **median across all cell lines**,
-  which is robust to a single anomalous line.
 - The drug module is the **top 5% of genes by absolute fold change**.
+- **Nothing reconciles the cell lines.** An earlier version of this note
+  claimed a per-gene median across lines; no such aggregation exists in the
+  data path. `parse_lincs` takes each signature column on its own, so each
+  cell line yields its own module under its own signature ID. A median across
+  lines is the intended behaviour, and it is the same fix as joining the
+  LINCS metadata. See [`PLACEHOLDERS.md`](PLACEHOLDERS.md) sections 3 and 4.
 
 ### Null model
 
@@ -124,8 +128,14 @@ disconnection heavily.
 ## Deviations from the paper
 
 1. **KCF-S fingerprints** - Morgan fingerprints (RDKit) are used as a proxy.
-2. **Some data sources** - placeholders where registration or an API key is
-   required (KEGG RPair, several disease-gene resources).
+2. **Interaction sources** - three of the seven configured sources reach the
+   network. KEGG RPair is an empty stub; SignaLink, InnateDB and Instruct
+   have no parser at all.
+3. **Disease modules** - susceptibility genes are not loaded, so a disease
+   module is its expression signature alone.
+4. **Drug modules** - keyed by LINCS signature ID rather than by compound,
+   with no aggregation across cell lines.
 
 All deviations are also marked in the code comments at the point where they
-apply.
+apply, and [`PLACEHOLDERS.md`](PLACEHOLDERS.md) traces each one through to its
+effect on results.

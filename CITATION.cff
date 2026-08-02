@@ -24,12 +24,14 @@ keywords:
 abstract: >-
   A Python implementation of SyndrumNET, a network-based
   trans-omics method for predicting synergistic drug
-  combinations. Integrates seven molecular-interaction
-  resources into a single human interactome, builds gene
-  modules for diseases and drugs from expression
-  signatures, propagates signal with PRINCE, and scores
-  drug pairs on network topology, disease proximity and
-  transcriptional reversal.
+  combinations. Integrates molecular-interaction resources
+  into a single human interactome, builds gene modules for
+  diseases and drugs from expression signatures, propagates
+  signal with PRINCE, and scores drug pairs on network
+  topology, disease proximity and transcriptional reversal.
+  The scoring layer is complete and tested; parts of the
+  data layer are placeholders, documented in
+  docs/PLACEHOLDERS.md.
 references:
   - type: article
     title: >-

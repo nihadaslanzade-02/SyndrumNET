@@ -4,6 +4,10 @@ Disease and drug module construction.
 Defines modules as sets of genes that characterize diseases or drug effects:
 - Disease modules: susceptibility genes + dysregulated genes
 - Drug modules: top 5% up/down regulated genes from L1000
+
+Only the second half of the disease definition is implemented. Susceptibility
+genes come back empty, so a disease module here is its expression signature
+and nothing else. See `docs/PLACEHOLDERS.md` section 2 for what that changes.
 """
 
 import logging
@@ -73,7 +77,13 @@ class ModuleBuilder:
             CREEDS disease signatures file.
         susceptibility_files : dict, optional
             Paths to disease gene sources (OMIM, ClinVar, etc.).
-            
+
+            **Currently a no-op.** `_load_susceptibility_genes` is a
+            placeholder that returns an empty set, so passing this argument
+            adds nothing and says so only at `DEBUG`. The modules that come
+            back are signature-only whether it is passed or not. See
+            `docs/PLACEHOLDERS.md` section 2.
+
         Returns
         -------
         dict
@@ -184,18 +194,32 @@ class ModuleBuilder:
         Returns
         -------
         set
-            Disease susceptibility genes.
+            Disease susceptibility genes. **Always empty**, see below.
+
+        Notes
+        -----
+        Placeholder. The method defines a disease module as the union of
+        susceptibility genes and dysregulated genes; this returns the empty
+        set, so only the second half ever reaches a module.
+
+        The parsers themselves are straightforward. The work is the disease
+        vocabulary: CREEDS names diseases in free text, ClinVar uses MedGen
+        concepts, DisGeNET uses UMLS CUIs and OMIM its own numbering, so the
+        sources cannot be joined to a CREEDS disease without a term mapping,
+        and the choice of mapping moves module membership more than the
+        choice of source does. `docs/PLACEHOLDERS.md` section 2 works through
+        what the omission changes about the predictions.
+
+        `DataDownloader.download_disease_genes()` already fetches ClinVar and
+        DisGeNET, so those files are on disk and unread.
         """
-        # This is a placeholder. Actual implementation requires parsing
-        # OMIM, ClinVar, GWAS, DisGeNET for specific diseases.
-        
         logger.debug(f"Loading susceptibility genes for {disease}")
-        
+
         genes = set()
-        
-        # TODO: Implement parsers for each source
-        # For now, return empty set
-        
+
+        # TODO: parse each source in source_files and select the rows for
+        # `disease`, once a disease-term mapping exists to select them by.
+
         return genes
     
     def save_modules(

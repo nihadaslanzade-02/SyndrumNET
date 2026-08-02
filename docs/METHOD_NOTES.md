@@ -25,16 +25,51 @@ z(d_QA) = (d_QA - mean(d_random)) / std(d_random)
 
 A drug pair is classified relative to the disease module using two quantities:
 
-1. **Drug-drug separation**: `s_AB = d_AB - (d_AA + d_BB)/2`
-2. **Disease-drug proximities**: `d_AQ`, `d_BQ`
+1. **Drug-drug separation**: `s_AB = <d_AB> - (<d_AA> + <d_BB>)/2`
+2. **Disease-drug proximity z-scores**: `z_QA`, `z_QB`
 
-| Condition | Class |
-|---|---|
-| `s_AB > 0` and both drugs close to the disease | Complementary |
-| `s_AB > 0`, at least one drug far from the disease | Intermediate |
-| `s_AB <= 0` | Redundant |
+The six classes come from Cheng et al. (2019), Figure 2. They partition on how
+many of the two drugs sit closer to the disease than chance, and whether the
+two drug modules share a network neighbourhood:
 
-The threshold for "close" is a distance of 3 hops, set in `scoring/tqab.py`.
+| Class | Name | `z_QA` | `z_QB` | `s_AB` |
+|---|---|---|---|---|
+| P1 | Overlapping Exposure | `< 0` | `< 0` | `< 0` |
+| **P2** | **Complementary Exposure** | `< 0` | `< 0` | `>= 0` |
+| P3 | Indirect Exposure | one `< 0` | | `< 0` |
+| P4 | Single Exposure | one `< 0` | | `>= 0` |
+| P5 | Non-exposure | `>= 0` | `>= 0` | `< 0` |
+| P6 | Independent Action | `>= 0` | `>= 0` | `>= 0` |
+
+Only Complementary Exposure is associated with synergy: both drugs reach the
+disease, but through different neighbourhoods, so their effects add rather
+than duplicate. The score is binary.
+
+```
+T_QAB = 2  for Complementary Exposure
+        0  for every other class
+```
+
+**Sign convention on `s_AB`**, inherited from Menche et al. (2015) via Cheng
+et al. (2019), quoting the latter directly:
+
+> For sAB < 0, the targets of the two drugs are located in the same network
+> neighborhood, while for sAB >= 0, the two drug targets are topologically
+> separated.
+
+Note that Iida et al. (2024) writes the Class II condition inline as
+`s_AB < 0`. That contradicts its own description of Class II as "two separated
+drug modules", and contradicts Cheng et al.'s Figure 2 panel P2, which reads
+`ZDA < 0, ZDB < 0, sAB >= 0`. This implementation follows the latter.
+
+**Intra-module distances exclude self-comparisons.** `<d_AA>` is the mean, over
+each gene in module A, of the distance to the nearest *other* gene in A. Letting
+a gene match itself makes `<d_AA>` identically 0, which collapses `s_AB` to
+`<d_AB>` and leaves it non-negative for any two distinct modules, so the
+overlapping classes become unreachable. The cross-module term `<d_AB>` does
+count shared genes at distance 0; Cheng et al. state this explicitly: "In
+<dAB>, targets associated with both drugs A and B have a zero distance by
+definition."
 
 ### PRINCE propagation
 

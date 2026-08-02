@@ -13,7 +13,7 @@ import networkx as nx
 import pandas as pd
 
 from syndrumnet.scoring.cqab import compute_cqab_batch
-from syndrumnet.scoring.pqab import compute_pqab_batch
+from syndrumnet.scoring.pqab import compute_pqab_batch, proximity_zscore
 from syndrumnet.scoring.tqab import compute_tqab_batch
 
 logger = logging.getLogger(__name__)
@@ -130,6 +130,22 @@ class SynergyPredictor:
             for drug in drug_names
         }
         
+        # Proximity z-scores are per drug and both TQAB and PQAB need them.
+        # Computing them once here keeps the null model to one run per drug
+        # rather than one per drug per pair, and guarantees the two components
+        # classify and score against identical numbers.
+        logger.info(f"Computing proximity z-scores for {len(drug_names)} drugs")
+        zscores = {
+            drug: proximity_zscore(
+                self.network,
+                disease_module,
+                drug_module_sets[drug],
+                self.n_randomizations,
+                self.seed,
+            )
+            for drug in sorted(drug_module_sets)
+        }
+
         # Compute TQAB
         logger.info("Computing TQAB (topological)")
         tqab_results = compute_tqab_batch(
@@ -137,8 +153,9 @@ class SynergyPredictor:
             disease_module,
             drug_module_sets,
             drug_pairs,
+            proximity_zscores=zscores,
         )
-        
+
         # Compute PQAB
         logger.info("Computing PQAB (proximity)")
         pqab_results = compute_pqab_batch(
@@ -148,6 +165,7 @@ class SynergyPredictor:
             drug_pairs,
             self.n_randomizations,
             self.seed,
+            proximity_zscores=zscores,
         )
         
         # Compute CQAB (if signatures available)

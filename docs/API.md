@@ -103,7 +103,7 @@ python scripts/gen_api_docs.py > docs/API.md
 - `module_seed(base_seed, module)` - Derive a deterministic null-model seed for one gene module.
 - `compute_pqab(G, disease_module, drug_a_module, drug_b_module, n_randomizations, seed)` - Compute proximity score PQAB.
 - `proximity_zscore(G, disease_module, drug_module, n_randomizations, seed)` - Compute the z-scored disease-drug proximity P_QA for a single drug.
-- `compute_pqab_batch(G, disease_module, drug_modules, drug_pairs, n_randomizations, seed)` - Compute PQAB for multiple drug pairs.
+- `compute_pqab_batch(G, disease_module, drug_modules, drug_pairs, n_randomizations, seed, proximity_zscores)` - Compute PQAB for multiple drug pairs.
 
 ### `syndrumnet.scoring.predictor`
 
@@ -112,9 +112,10 @@ python scripts/gen_api_docs.py > docs/API.md
 
 ### `syndrumnet.scoring.tqab`
 
-- **`TopologyClass`** - Enumeration of drug pair topology classes.
-- `compute_tqab(G, disease_module, drug_a_module, drug_b_module)` - Compute topological class score TQAB.
-- `compute_tqab_batch(G, disease_module, drug_modules, drug_pairs)` - Compute TQAB for multiple drug pairs.
+- **`TopologyClass`** - The six drug-drug-disease classes of Cheng et al. (2019), Figure 2.
+- `classify_topology(z_qa, z_qb, s_ab)` - Assign a drug pair to one of the six topological classes.
+- `compute_tqab(z_qa, z_qb, s_ab)` - Compute the topological class score T_QAB.
+- `compute_tqab_batch(G, disease_module, drug_modules, drug_pairs, proximity_zscores, n_randomizations, seed)` - Compute TQAB for multiple drug pairs.
 
 ## `syndrumnet.eval`
 

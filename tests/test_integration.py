@@ -14,6 +14,11 @@ import pytest
 from syndrumnet.metrics.distances import separation_score, shortest_path_distance
 from syndrumnet.scoring.pqab import compute_pqab, compute_pqab_batch, proximity_zscore
 from syndrumnet.scoring.predictor import SynergyPredictor
+from syndrumnet.scoring.tqab import (
+    COMPLEMENTARY_EXPOSURE_SCORE,
+    TopologyClass,
+    compute_tqab_batch,
+)
 
 N_RANDOMIZATIONS = 50
 SEED = 42
@@ -193,19 +198,93 @@ def test_overlapping_drugs_are_less_separated(network, drug_modules):
     )
 
 
-def test_topology_classes_distinguish_pairs(predictions):
-    """
-    Overlapping drugs are classed redundant; drugs in different communities
-    are not. Before the intra-module distance was fixed every pair came out
-    complementary, so this asserts the classifier discriminates at all.
-    """
-    by_pair = {
-        frozenset((row.drug_a, row.drug_b)): row.topology_class
-        for row in predictions.itertuples()
+def test_every_pair_gets_a_valid_class(predictions):
+    """The classification is exhaustive, so no pair can fall through it."""
+    valid = {
+        value
+        for name, value in vars(TopologyClass).items()
+        if not name.startswith("_")
     }
 
-    assert by_pair[frozenset(("left", "left_overlap"))] == "redundant"
-    assert by_pair[frozenset(("left", "right"))] != "redundant"
+    assert set(predictions.topology_class) <= valid
+
+
+def test_tqab_is_binary_and_tracks_the_class(predictions):
+    """
+    T_QAB is 2 for Complementary Exposure and 0 otherwise, with no
+    intermediate values. Earlier revisions produced a graded score from
+    unpublished constants instead.
+    """
+    for row in predictions.itertuples():
+        expected = (
+            COMPLEMENTARY_EXPOSURE_SCORE
+            if row.topology_class == TopologyClass.COMPLEMENTARY_EXPOSURE
+            else 0.0
+        )
+        assert row.tqab == expected
+
+
+def test_topology_uses_the_shared_zscores(network, disease_module, drug_modules):
+    """
+    TQAB classifies on the same proximity z-scores PQAB scores on.
+
+    Passing them in must give the same answer as letting the batch compute
+    its own, otherwise the two components disagree about how close a drug is.
+    """
+    module_sets = {
+        name: sig["up"] | sig["down"] for name, sig in drug_modules.items()
+    }
+    names = sorted(module_sets)
+    pairs = [(a, b) for i, a in enumerate(names) for b in names[i + 1:]]
+
+    zscores = {
+        name: proximity_zscore(
+            network, disease_module, module_sets[name], N_RANDOMIZATIONS, SEED
+        )
+        for name in names
+    }
+
+    supplied = compute_tqab_batch(
+        network, disease_module, module_sets, pairs, proximity_zscores=zscores
+    )
+    computed = compute_tqab_batch(
+        network,
+        disease_module,
+        module_sets,
+        pairs,
+        n_randomizations=N_RANDOMIZATIONS,
+        seed=SEED,
+    )
+
+    assert supplied == computed
+
+
+def test_complementary_exposure_reaches_the_score(network, drug_modules):
+    """
+    The one class that scores runs end to end through the batch path.
+
+    The synthetic network has no drug that is genuinely closer to the disease
+    than chance, so the z-scores are supplied directly here; the separation
+    term still comes from the real network.
+    """
+    module_sets = {
+        name: sig["up"] | sig["down"] for name, sig in drug_modules.items()
+    }
+    # left and right sit in different communities, so they are separated.
+    both_near = {"left": -1.5, "right": -1.2}
+
+    results = compute_tqab_batch(
+        network,
+        set(),
+        {name: module_sets[name] for name in both_near},
+        [("left", "right")],
+        proximity_zscores=both_near,
+    )
+
+    score, topology_class = results[("left", "right")]
+
+    assert topology_class == TopologyClass.COMPLEMENTARY_EXPOSURE
+    assert score == COMPLEMENTARY_EXPOSURE_SCORE
 
 
 def test_transcriptional_score_rewards_reversal(predictions):

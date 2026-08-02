@@ -37,22 +37,59 @@ references:
       synergistic drug combinations
     authors:
       - family-names: Iida
-        given-names: M.
+        given-names: Michio
+      - family-names: Kuniki
+        given-names: Yuya
+      - family-names: Yagi
+        given-names: Kenta
+      - family-names: Goda
+        given-names: Mitsuhiro
+      - family-names: Namba
+        given-names: Shinya
+      - family-names: Takeshita
+        given-names: Jun-ichi
+      - family-names: Sawada
+        given-names: Ryusuke
+      - family-names: Iwata
+        given-names: Michio
+      - family-names: Zamami
+        given-names: Yoshito
+      - family-names: Ishizawa
+        given-names: Keisuke
+      - family-names: Yamanishi
+        given-names: Yoshihiro
     year: 2024
     journal: Communications Medicine
+    volume: 4
+    number: 154
+    doi: 10.1038/s43856-024-00571-2
+  - type: article
+    title: Network-based prediction of drug combinations
+    authors:
+      - family-names: Cheng
+        given-names: Feixiong
+      - family-names: Kovács
+        given-names: István A.
+      - family-names: Barabási
+        given-names: Albert-László
+    year: 2019
+    journal: Nature Communications
+    volume: 10
+    number: 1197
+    doi: 10.1038/s41467-019-09186-x
   - type: article
     title: >-
       Associating genes and protein complexes with disease
       via network propagation
     authors:
       - family-names: Vanunu
-        given-names: O.
+        given-names: Oron
     year: 2010
     journal: PLoS Computational Biology
   - type: article
     title: Network-based in silico drug efficacy screening
     authors:
       - family-names: Guney
-        given-names: E.
+        given-names: Emre
     year: 2016
     journal: Nature Communications

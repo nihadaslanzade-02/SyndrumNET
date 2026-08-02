@@ -6,7 +6,7 @@ Aggregates disease-drug network proximities for drug pair.
 
 import hashlib
 import logging
-from typing import Dict, List, Set, Tuple
+from typing import Dict, List, Optional, Set, Tuple
 
 import networkx as nx
 
@@ -144,6 +144,7 @@ def compute_pqab_batch(
     drug_pairs: List[Tuple[str, str]],
     n_randomizations: int = 1000,
     seed: int = 42,
+    proximity_zscores: Optional[Dict[str, float]] = None,
 ) -> Dict[Tuple[str, str], Tuple[float, float, float]]:
     """
     Compute PQAB for multiple drug pairs.
@@ -162,7 +163,10 @@ def compute_pqab_batch(
         Number of randomizations for z-scores.
     seed : int
         Random seed.
-        
+    proximity_zscores : dict, optional
+        Precomputed {drug_name: z_score}. Pass the values already computed for
+        TQAB rather than paying for the null model twice.
+
     Returns
     -------
     dict
@@ -178,17 +182,19 @@ def compute_pqab_batch(
     """
     needed = {drug for pair in drug_pairs for drug in pair if drug in drug_modules}
 
-    logger.info(
-        f"Computing proximity z-scores for {len(needed)} drugs "
-        f"covering {len(drug_pairs)} pairs"
-    )
-
-    zscores: Dict[str, float] = {
-        drug: proximity_zscore(
-            G, disease_module, drug_modules[drug], n_randomizations, seed
+    if proximity_zscores is not None:
+        zscores: Dict[str, float] = proximity_zscores
+    else:
+        logger.info(
+            f"Computing proximity z-scores for {len(needed)} drugs "
+            f"covering {len(drug_pairs)} pairs"
         )
-        for drug in sorted(needed)
-    }
+        zscores = {
+            drug: proximity_zscore(
+                G, disease_module, drug_modules[drug], n_randomizations, seed
+            )
+            for drug in sorted(needed)
+        }
 
     results = {}
 

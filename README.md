@@ -38,13 +38,18 @@ Positive `s_AB` means the modules are separated, negative means they overlap. Di
 
 ### T: topological class
 
-The intuition the whole method is built on: **two drugs help each other when they hit different parts of the disease neighbourhood, and duplicate each other when they hit the same part.** [`scoring/tqab.py`](src/syndrumnet/scoring/tqab.py) turns that into a three-way classification:
+The intuition the whole method is built on: **two drugs help each other when they reach the disease through different neighbourhoods, and duplicate each other when they reach it through the same one.** [`scoring/tqab.py`](src/syndrumnet/scoring/tqab.py) implements the six-class scheme of Cheng et al. (2019), which partitions on how many of the two drugs sit closer to the disease than chance, and whether the drug modules share a neighbourhood:
 
-| Condition | Class | Score |
-|---|---|---|
-| `s_AB > 0` and both drugs within distance 3 of the disease | **Complementary** | `1 - d_mean/10` |
-| `s_AB > 0`, at least one drug further away | **Intermediate** | `0.5 - d_mean/10` |
-| `s_AB <= 0` (drug modules overlap) | **Redundant** | `-abs(s_AB)/5` |
+| Class | `z_QA` | `z_QB` | `s_AB` | `T_QAB` |
+|---|---|---|---|---|
+| Overlapping Exposure | `< 0` | `< 0` | `< 0` | 0 |
+| **Complementary Exposure** | `< 0` | `< 0` | `>= 0` | **2** |
+| Indirect Exposure | one `< 0` | | `< 0` | 0 |
+| Single Exposure | one `< 0` | | `>= 0` | 0 |
+| Non-exposure | `>= 0` | `>= 0` | `< 0` | 0 |
+| Independent Action | `>= 0` | `>= 0` | `>= 0` | 0 |
+
+Only Complementary Exposure is associated with synergy, and the score is binary rather than graded. Because the final prediction is an unweighted sum of the three components, that constant of 2 is what sets the topological axis' weight against the other two.
 
 ### P: proximity
 
@@ -114,7 +119,27 @@ the same sample splits 153 redundant to 47 complementary.
 depend on a single drug, yet the batch functions recomputed them for every pair
 that drug appeared in. At the 1,488 drugs the default config declares, that is
 2.2 million null-model sweeps where 1,488 suffice. Both batch paths now compute
-one value per drug and reuse it.
+one value per drug and reuse it, and the predictor computes the z-scores once
+and hands the same values to both TQAB and PQAB.
+
+**The topological score did not match the published definition.** This one came
+out of reading the source papers rather than the tests. `T_QAB` was a graded
+score built from three unpublished constants: a cutoff of 3 hops on the raw
+disease-drug distance, and divisors of 10 and 5 in the class scores. The
+published method classifies on the proximity **z-scores** (`z_QA < 0`, meaning
+closer to the disease than a degree-matched random module) rather than on an
+absolute hop count, distinguishes six classes rather than three, and awards a
+**binary** `T_QAB = 2` for Complementary Exposure and 0 for everything else.
+The implementation now follows Cheng et al.'s Figure 2 table, and the six
+classes are covered by a parametrised test.
+
+While reconciling it, one discrepancy in the sources is worth recording:
+Iida et al. give the Class II condition inline as `s_AB < 0`, which contradicts
+both their own description of Class II as "two separated drug modules" and
+Cheng et al.'s panel P2, which reads `sAB >= 0`. The convention that
+`s_AB < 0` means the modules share a neighbourhood is stated explicitly in
+Cheng et al., so this implementation uses `s_AB >= 0` and documents the
+conflict in [`docs/METHOD_NOTES.md`](docs/METHOD_NOTES.md).
 
 Earlier still, the package could not be imported at all: seven `typing` names
 and `pandas` were used without being imported, and because Python evaluates
@@ -278,13 +303,15 @@ No data is committed to this repository; `data/` is populated by `build_all_data
 
 The method implemented here:
 
-1. **Iida et al. (2024).** *A network-based trans-omics approach for predicting synergistic drug combinations (SyndrumNET).* Communications Medicine.
+1. **Iida, M., Kuniki, Y., Yagi, K., Goda, M., Namba, S., Takeshita, J.-I., Sawada, R., Iwata, M., Zamami, Y., Ishizawa, K. & Yamanishi, Y. (2024).** *A network-based trans-omics approach for predicting synergistic drug combinations.* Communications Medicine **4**, 154. [doi:10.1038/s43856-024-00571-2](https://doi.org/10.1038/s43856-024-00571-2)
 
 Methodological foundations:
 
-2. **Vanunu et al. (2010).** *Associating genes and protein complexes with disease via network propagation.* PLoS Computational Biology. (PRINCE)
-3. **Guney et al. (2016).** *Network-based in silico drug efficacy screening.* Nature Communications. (network proximity and the degree-preserving null model)
-4. **Cowen et al. (2017).** *Network propagation: a universal amplifier of genetic associations.* Nature Reviews Genetics.
+2. **Cheng, F., Kovács, I. A. & Barabási, A.-L. (2019).** *Network-based prediction of drug combinations.* Nature Communications **10**, 1197. [doi:10.1038/s41467-019-09186-x](https://doi.org/10.1038/s41467-019-09186-x) (the six topological classes and Complementary Exposure)
+3. **Menche, J. et al. (2015).** *Uncovering disease-disease relationships through the incomplete interactome.* Science **347**, 1257601. (the separation measure `s_AB`)
+4. **Vanunu, O. et al. (2010).** *Associating genes and protein complexes with disease via network propagation.* PLoS Computational Biology **6**, e1000641. (PRINCE)
+5. **Guney, E. et al. (2016).** *Network-based in silico drug efficacy screening.* Nature Communications **7**, 10331. (network proximity and the degree-preserving null model)
+6. **Cowen, L. et al. (2017).** *Network propagation: a universal amplifier of genetic associations.* Nature Reviews Genetics **18**, 551-562.
 
 If you use this code, please cite the Iida et al. paper for the method and this repository for the implementation. [`CITATION.cff`](CITATION.cff) has the machine-readable form, and GitHub's "Cite this repository" button reads from it.
 

@@ -25,7 +25,12 @@ COMPONENT_LABELS = ('TQAB (Topological)', 'PQAB (Proximity)', 'CQAB (Transcripti
 REQUIRED_PREDICTION_COLUMNS = ('drug_a', 'drug_b', 'prediction_score') + SCORE_COMPONENTS
 
 
-def _save(fig: plt.Figure, output_path: Path, description: str) -> None:
+#: Resolution used when a caller does not pass one. `configs/default.yaml`
+#: carries a `visualization.dpi` that the scripts thread through.
+DEFAULT_DPI = 300
+
+
+def _save(fig: plt.Figure, output_path: Path, description: str, dpi: int) -> None:
     """
     Write a figure to disk and always release it.
 
@@ -39,7 +44,7 @@ def _save(fig: plt.Figure, output_path: Path, description: str) -> None:
     try:
         fig.tight_layout()
         output_path.parent.mkdir(parents=True, exist_ok=True)
-        fig.savefig(output_path, dpi=300, bbox_inches='tight')
+        fig.savefig(output_path, dpi=dpi, bbox_inches='tight')
     finally:
         plt.close(fig)
 
@@ -61,6 +66,7 @@ def plot_degree_distribution(
     G: nx.Graph,
     output_path: Path,
     log_scale: bool = True,
+    dpi: int = DEFAULT_DPI,
 ) -> None:
     """
     Plot network degree distribution.
@@ -73,6 +79,9 @@ def plot_degree_distribution(
         Output file path.
     log_scale : bool
         Use log-log scale.
+    dpi : int
+        Output resolution. `configs/default.yaml` sets this under
+        `visualization.dpi`.
 
     Raises
     ------
@@ -128,7 +137,7 @@ def plot_degree_distribution(
     ax.set_title(title, fontsize=14, fontweight='bold')
     ax.grid(True, alpha=0.3)
 
-    _save(fig, output_path, "degree distribution")
+    _save(fig, output_path, "degree distribution", dpi)
 
 
 def plot_roc_curve(
@@ -137,6 +146,7 @@ def plot_roc_curve(
     auc: float,
     output_path: Path,
     title: str = "ROC Curve",
+    dpi: int = DEFAULT_DPI,
 ) -> None:
     """
     Plot ROC curve.
@@ -153,6 +163,9 @@ def plot_roc_curve(
         Output file path.
     title : str
         Plot title.
+    dpi : int
+        Output resolution. `configs/default.yaml` sets this under
+        `visualization.dpi`.
     """
     fig, ax = plt.subplots(figsize=(8, 6))
 
@@ -165,7 +178,7 @@ def plot_roc_curve(
     ax.legend(loc='lower right', fontsize=11)
     ax.grid(True, alpha=0.3)
 
-    _save(fig, output_path, "ROC curve")
+    _save(fig, output_path, "ROC curve", dpi)
 
 
 def plot_pr_curve(
@@ -174,6 +187,7 @@ def plot_pr_curve(
     auc_pr: float,
     output_path: Path,
     title: str = "Precision-Recall Curve",
+    dpi: int = DEFAULT_DPI,
 ) -> None:
     """
     Plot precision-recall curve.
@@ -190,6 +204,9 @@ def plot_pr_curve(
         Output file path.
     title : str
         Plot title.
+    dpi : int
+        Output resolution. `configs/default.yaml` sets this under
+        `visualization.dpi`.
     """
     fig, ax = plt.subplots(figsize=(8, 6))
 
@@ -201,12 +218,13 @@ def plot_pr_curve(
     ax.legend(loc='lower left', fontsize=11)
     ax.grid(True, alpha=0.3)
 
-    _save(fig, output_path, "PR curve")
+    _save(fig, output_path, "PR curve", dpi)
 
 
 def plot_score_distributions(
     predictions: pd.DataFrame,
     output_path: Path,
+    dpi: int = DEFAULT_DPI,
 ) -> None:
     """
     Plot distributions of TQAB, PQAB, CQAB scores.
@@ -217,6 +235,9 @@ def plot_score_distributions(
         Predictions with score columns.
     output_path : Path
         Output file path.
+    dpi : int
+        Output resolution. `configs/default.yaml` sets this under
+        `visualization.dpi`.
 
     Raises
     ------
@@ -255,13 +276,14 @@ def plot_score_distributions(
 
         ax.hist(values, bins=30, edgecolor='black', alpha=0.7)
 
-    _save(fig, output_path, "score distributions")
+    _save(fig, output_path, "score distributions", dpi)
 
 
 def plot_top_predictions(
     predictions: pd.DataFrame,
     k: int = 20,
     output_path: Optional[Path] = None,
+    dpi: int = DEFAULT_DPI,
 ) -> None:
     """
     Plot top-k predictions as a signed decomposition of the total score.
@@ -275,6 +297,9 @@ def plot_top_predictions(
     output_path : Path, optional
         Output file path. If omitted the figure is shown instead of saved,
         and ownership of it passes to the caller.
+    dpi : int
+        Output resolution. `configs/default.yaml` sets this under
+        `visualization.dpi`.
 
     Raises
     ------
@@ -341,12 +366,13 @@ def plot_top_predictions(
         plt.show()
         return
 
-    _save(fig, output_path, "top predictions plot")
+    _save(fig, output_path, "top predictions plot", dpi)
 
 
 def plot_auc_comparison(
     results: Dict[str, Dict[str, float]],
     output_path: Path,
+    dpi: int = DEFAULT_DPI,
 ) -> None:
     """
     Plot AUC comparison across diseases.
@@ -357,6 +383,9 @@ def plot_auc_comparison(
         {disease: {'auc_roc': ..., 'auc_pr': ...}}
     output_path : Path
         Output file path.
+    dpi : int
+        Output resolution. `configs/default.yaml` sets this under
+        `visualization.dpi`.
 
     Raises
     ------
@@ -399,4 +428,4 @@ def plot_auc_comparison(
     ax.grid(True, axis='y', alpha=0.3)
     ax.set_ylim([0, 1.0])
 
-    _save(fig, output_path, "AUC comparison")
+    _save(fig, output_path, "AUC comparison", dpi)

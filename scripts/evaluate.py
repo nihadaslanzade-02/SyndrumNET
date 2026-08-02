@@ -54,7 +54,13 @@ def main():
     results = {}
     figures_dir = Path('reports/figures')
     figures_dir.mkdir(parents=True, exist_ok=True)
-    
+
+    # Rendering settings from the config's visualization block
+    viz = getattr(config, 'visualization', None)
+    dpi = viz.get('dpi', 300) if viz else 300
+    fmt = viz.get('figure_format', 'png') if viz else 'png'
+
+
     predictions_dir = Path('reports/tables')
     
     for disease in config.diseases:
@@ -89,15 +95,17 @@ def main():
             fpr, tpr, _ = compute_roc_curve(y_true, y_score)
             plot_roc_curve(
                 fpr, tpr, metrics['auc_roc'],
-                figures_dir / f"roc_{disease.lower().replace(' ', '_')}.png",
-                title=f"ROC Curve - {disease}"
+                figures_dir / f"roc_{disease.lower().replace(' ', '_')}.{fmt}",
+                title=f"ROC Curve - {disease}",
+                dpi=dpi,
             )
-            
+
             precision, recall, _ = compute_precision_recall_curve(y_true, y_score)
             plot_pr_curve(
                 precision, recall, metrics['auc_pr'],
-                figures_dir / f"pr_{disease.lower().replace(' ', '_')}.png",
-                title=f"Precision-Recall - {disease}"
+                figures_dir / f"pr_{disease.lower().replace(' ', '_')}.{fmt}",
+                title=f"Precision-Recall - {disease}",
+                dpi=dpi,
             )
     
     # Generate summary report
@@ -106,7 +114,7 @@ def main():
         generate_evaluation_report(results, report_file)
         
         # Plot comparison
-        plot_auc_comparison(results, figures_dir / 'auc_comparison.png')
+        plot_auc_comparison(results, figures_dir / f'auc_comparison.{fmt}', dpi=dpi)
     
     logger.info("\n" + "="*60)
     logger.info("Evaluation complete!")

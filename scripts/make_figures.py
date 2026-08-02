@@ -34,15 +34,22 @@ def main():
     
     figures_dir = Path('reports/figures')
     figures_dir.mkdir(parents=True, exist_ok=True)
-    
+
+    # Rendering settings from the config's visualization block
+    viz = getattr(config, 'visualization', None)
+    dpi = viz.get('dpi', 300) if viz else 300
+    fmt = viz.get('figure_format', 'png') if viz else 'png'
+    top_k = viz.get('top_k_predictions', 20) if viz else 20
+
     # Network figures
     logger.info("\n[1/3] Generating network figures...")
-    
+
     network_file = Path('data/processed/network.graphml')
     if network_file.exists():
         G = NetworkBuilder.load(network_file)
-        plot_degree_distribution(G, figures_dir / 'degree_distribution.png')
-    
+        plot_degree_distribution(G, figures_dir / f'degree_distribution.{fmt}', dpi=dpi)
+
+
     # Score distribution figures
     logger.info("\n[2/3] Generating score distribution figures...")
     
@@ -56,14 +63,18 @@ def main():
             # Score distributions
             plot_score_distributions(
                 predictions,
-                figures_dir / f"score_dist_{disease.lower().replace(' ', '_')}.png"
+                figures_dir / f"score_dist_{disease.lower().replace(' ', '_')}.{fmt}",
+                dpi=dpi,
             )
-            
+
             # Top predictions
             plot_top_predictions(
                 predictions,
-                k=20,
-                output_path=figures_dir / f"top_pairs_{disease.lower().replace(' ', '_')}.png"
+                k=top_k,
+                output_path=(
+                    figures_dir / f"top_pairs_{disease.lower().replace(' ', '_')}.{fmt}"
+                ),
+                dpi=dpi,
             )
     
     logger.info("\n[3/3] Figure generation complete!")

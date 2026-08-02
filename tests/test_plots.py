@@ -54,13 +54,13 @@ def axes(monkeypatch):
     """
     captured = []
 
-    def capture(fig, output_path, description):
+    def capture(fig, output_path, description, dpi):
         from pathlib import Path
 
         path = Path(output_path)
         fig.tight_layout()
         path.parent.mkdir(parents=True, exist_ok=True)
-        fig.savefig(path)
+        fig.savefig(path, dpi=72)
         captured.append(fig)
 
     monkeypatch.setattr(plots, "_save", capture)
@@ -328,3 +328,33 @@ def test_auc_comparison_names_the_disease_missing_a_metric(tmp_path):
 def test_auc_comparison_rejects_empty_results(tmp_path):
     with pytest.raises(ValueError, match="empty"):
         plot_auc_comparison({}, tmp_path / "auc.png")
+
+
+# --------------------------------------------------------------------------
+# Rendering settings
+# --------------------------------------------------------------------------
+
+def test_dpi_is_honoured(tmp_path):
+    """
+    `configs/default.yaml` declares visualization.dpi and nothing read it;
+    dpi was hardcoded at 300 in every save. A lower setting must produce a
+    visibly smaller image.
+    """
+    from PIL import Image
+
+    G = nx.barabasi_albert_graph(60, 2, seed=3)
+
+    plot_degree_distribution(G, tmp_path / "low.png", dpi=50)
+    plot_degree_distribution(G, tmp_path / "high.png", dpi=200)
+
+    low = Image.open(tmp_path / "low.png").size
+    high = Image.open(tmp_path / "high.png").size
+
+    assert high[0] > low[0] and high[1] > low[1]
+
+
+def test_default_dpi_is_unchanged(tmp_path):
+    """The default stays 300, so existing callers render identically."""
+    from syndrumnet.viz.plots import DEFAULT_DPI
+
+    assert DEFAULT_DPI == 300

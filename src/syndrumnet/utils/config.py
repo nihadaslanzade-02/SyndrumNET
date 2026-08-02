@@ -71,7 +71,17 @@ def load_config(config_path: Union[str, Path]) -> Config:
     -------
     Config
         Configuration object with nested access.
-        
+
+    Raises
+    ------
+    FileNotFoundError
+        If the file does not exist.
+    ValueError
+        If the file is empty or does not parse to a mapping. `yaml.safe_load`
+        returns `None` for an empty file, which used to reach `Config` and
+        fail there with `'NoneType' object has no attribute 'items'`. Five of
+        the six files in `configs/diseases/` are empty, so this is reachable.
+
     Examples
     --------
     >>> config = load_config('configs/default.yaml')
@@ -81,13 +91,22 @@ def load_config(config_path: Union[str, Path]) -> Config:
     1000
     """
     config_path = Path(config_path)
-    
+
     if not config_path.exists():
         raise FileNotFoundError(f"Configuration file not found: {config_path}")
-    
+
     with open(config_path, 'r') as f:
         config_dict = yaml.safe_load(f)
-    
+
+    if config_dict is None:
+        raise ValueError(f"Configuration file is empty: {config_path}")
+
+    if not isinstance(config_dict, dict):
+        raise ValueError(
+            f"Configuration file must contain a mapping at the top level, "
+            f"got {type(config_dict).__name__}: {config_path}"
+        )
+
     return Config(config_dict)
 
 

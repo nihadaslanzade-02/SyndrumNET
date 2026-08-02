@@ -24,6 +24,7 @@ not measured error.
 | 6 | `build()` harmonises the gene list twice | `data/network_builder.py` | No, marked `TODO` |
 | 7 | ID mapping is one HTTP request per identifier | `io/id_mapping.py` | As runtime |
 | 8 | Extension scripts are stubs | `scripts/add_new_*.py` | Yes, they print it |
+| 9 | Five of six per-disease configs are empty files | `configs/diseases/` | Now yes, see below |
 
 ---
 
@@ -223,6 +224,31 @@ to `cache_dir`, which is created in `__init__` and then only used in memory.
 `scripts/add_new_disease.py` and `scripts/add_new_drugs.py` parse their
 arguments, print what they would do, and exit. They are honest about it on
 stdout, so they are listed here only for completeness.
+
+## 9. Five of the six per-disease configs are empty files
+
+`configs/diseases/` holds one file per disease in `config.diseases`. Only
+`cml.yaml` has content, 262 bytes of disease name, key genes and known drugs.
+`aml.yaml`, `asthma.yaml`, `colorectal_cancer.yaml`, `diabetes_t2.yaml` and
+`hypertension.yaml` are zero bytes.
+
+Nothing in the codebase reads the directory, so this breaks no run today. It
+did make `load_config` fail badly, though: `yaml.safe_load` returns `None`
+for an empty file, which reached `Config.__init__` and raised
+`'NoneType' object has no attribute 'items'` without naming the file. That is
+now an explicit `ValueError`, covered in `tests/test_config.py`.
+
+The files are left empty on purpose. Filling them means naming each disease's
+key genes and known drugs, which are domain facts, and a plausible-looking
+guess in a config file is worse than an obviously empty one.
+
+## Not a placeholder, but adjacent: config keys nothing read
+
+Three keys under `visualization` in `configs/default.yaml` were declared and
+consumed by nothing: `dpi`, `figure_format` and `top_k_predictions`. The plot
+functions hardcoded 300 dpi and `.png`, and `make_figures.py` hardcoded
+`k=20`. All three are now threaded through, with a test asserting the block
+is still read so they cannot quietly drift back out of use.
 
 ---
 

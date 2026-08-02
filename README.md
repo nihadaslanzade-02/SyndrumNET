@@ -86,7 +86,7 @@ The library layer is tested and green. The **full pipeline has not yet been run 
 | Layer | State |
 |---|---|
 | Package import | Clean across Python 3.10, 3.11 and 3.12 |
-| Test suite | **94 passing**: unit coverage of every metric and scoring module, plus end-to-end runs over a synthetic network |
+| Test suite | **103 passing**: unit coverage of every metric and scoring module, plus end-to-end runs over a synthetic network |
 | Lint | `ruff` clean, enforced in CI |
 | Scoring pipeline | `SynergyPredictor.predict_all()` runs end to end and is covered by integration tests |
 | Interaction sources | 3 of the 7 in `configs/default.yaml` have a parser. The other 4 are dropped without a warning |
@@ -148,6 +148,32 @@ Cheng et al.'s panel P2, which reads `sAB >= 0`. The convention that
 Cheng et al., so this implementation uses `s_AB >= 0` and documents the
 conflict in [`docs/METHOD_NOTES.md`](docs/METHOD_NOTES.md).
 
+**Two modules had no coverage at all, and both were wrong.** `similarity_layers.py`
+and `viz/plots.py` were the last untested files. Covering them turned up eight
+more defects, of which two were silent and would never have announced
+themselves:
+
+- `tanimoto_similarity_matrix` gave a wrong answer for boolean fingerprints. A
+  bool array is the most natural way to write "binary fingerprint matrix", but
+  numpy's `@` on booleans is logical rather than arithmetic, so every
+  shared-bit count saturated at 1. On 2048-bit Morgan-style fingerprints every
+  entry came back near 0.005 and the diagonal read 0.33 instead of 1.0. Integer
+  and float inputs were fine, which is why nothing caught it.
+- `plot_top_predictions` stacked all three score components from a single
+  running offset. PQAB is an averaged proximity z-score, negative exactly when
+  the drugs sit close to the disease, so its segment was drawn back across the
+  positive TQAB segment. The bar's end point still landed on the right total,
+  which is what makes it easy to miss: only the decomposition was wrong. It now
+  stacks positive and negative parts from separate baselines, marks the total
+  separately, and inverts the y axis so the best pair is at the top rather than
+  the bottom.
+
+Also: the log-log degree distribution used linear bins, and a bin starting at
+degree 0 pulled the lower x-limit to 7e-18 on a graph with isolated nodes; a
+save that failed left its figure open; and `visualization.dpi`,
+`figure_format` and `top_k_predictions` were declared in the config and read by
+nothing.
+
 Earlier still, the package could not be imported at all: seven `typing` names
 and `pandas` were used without being imported, and because Python evaluates
 annotations at definition time, five of the eight subpackages raised
@@ -179,7 +205,7 @@ src/syndrumnet/
 
 scripts/             build_all_data · run_pipeline · evaluate · make_figures · gen_api_docs
 configs/             default.yaml + one YAML per disease
-tests/               distances · null_models · propagation · scoring · similarity_layers · plots · integration
+tests/               config · distances · null_models · propagation · scoring · similarity_layers · plots · integration
 ```
 
 Design decisions worth noting: `src/` layout so tests run against the installed package rather than the working directory; every public function carries a full NumPy-style docstring with parameters, returns and references; a single YAML config drives every stage with CLI overrides layered on top; seeding is centralised in `utils/seeds.py` rather than scattered across call sites; and scoring is split into one module per component so the three axes stay independently testable.
@@ -199,7 +225,7 @@ pip install -e ".[dev]"
 Requires Python 3.10+, roughly 16 GB RAM and ~50 GB of disk for the full data build.
 
 ```bash
-pytest tests/ -v      # 94 tests, no data or network access needed
+pytest tests/ -v      # 103 tests, no data or network access needed
 ruff check .          # same lint gate CI runs
 ```
 
@@ -266,7 +292,9 @@ python scripts/run_pipeline.py --config configs/default.yaml \
     --propagation.alpha 0.7 --scoring.n_randomizations 2000
 ```
 
-Six diseases ship with their own config in [`configs/diseases/`](configs/diseases/). `scripts/add_new_disease.py` and `scripts/add_new_drugs.py` are the intended extension points for adding a disease from a GEO series or drugs from LINCS; both are currently stubs.
+`visualization.dpi`, `visualization.figure_format` and `visualization.top_k_predictions` are read by `make_figures.py` and `evaluate.py`; every other key is consumed where you would expect.
+
+[`configs/diseases/`](configs/diseases/) has one file per disease, but only `cml.yaml` has any content and nothing in the codebase reads the directory yet. `scripts/add_new_disease.py` and `scripts/add_new_drugs.py` are the intended extension points for adding a disease from a GEO series or drugs from LINCS; both are currently stubs.
 
 ---
 
